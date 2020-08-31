@@ -1,0 +1,232 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+    <script type="text/javascript" src="../lib/dat.gui.min.js"></script>
+	<script src="../common.js"></script>
+	<script src="../initGf.js"></script>
+    <style type="text/css">
+
+    </style>
+</head>
+<body>
+ms<p id="timer"></span> 
+<script type="text/javascript">
+
+
+
+
+    var chartSize = 400;
+    var dataSize = 400;
+var dataSizeCenter=dataSize/2; initGf();
+
+
+var prop={
+ Antcolors : {},
+ colorAdds : [1, -1],
+ colorAdds0 : 0,
+get  colorAdds0() { return this.colorAdds[0]; },
+set  colorAdds0(val) { this.colorAdds[0]=val; },
+
+colorAdds1 : 0,
+get  colorAdds1() { return this.colorAdds[1]; },
+set  colorAdds1(val) { this.colorAdds[1]=val; },
+
+color_max : 1,
+
+
+ op_per_frame : 10,
+ iiAdd_each_op : 1, //e.g. for increment color by time left
+ ii : 0,
+ ii_counter : 0,
+
+ fill_type : 2,
+ 
+ fill: function ()
+	 {
+	 for(var xx=0; xx<dataSize; xx++)
+	{
+	for(var yy=0; yy<dataSize; yy++)
+	{
+		var ret=0;
+		 switch(prop.fill_type) //+ cast to int
+		 {
+		  case 0: ret= 0; break;
+		  case 1: ret= xx%2*255; break;
+		  
+		  case 2: ret= ((~~(xx%2))^(~~(yy%2)) )*255 ;  break;
+		  case 3: ret= xx%2*127+yy%2 *127 ;  break;//((~~(d%2))^(~~((d/dataSize)%2)))*255; //(~~(x%2))^(~~(y%2))*255;
+		  
+		   
+		  case 4: ret= ~~(Math.random()*255);  break;// Math.random == [0, 1) //?? 256  
+		  //~~ == Math.floor двойного побитового отрицания https://medium.com/@frontman/integer-%D0%B8-float-%D0%B2-javascript-9ca16ba1484f
+		  case 5: ret= xx%255; break;
+		 }
+		dataset[xx][yy]=ret;
+	}
+	}
+	},
+	
+	
+	freq_dirModule:32,
+	freq_rangeMult:128
+}
+
+
+
+var datasetColor = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+var dataset = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+
+prop.fill();
+
+
+
+
+
+
+
+var gui = new dat.GUI();
+
+var f1 = gui.addFolder('Flow Field');
+f1.add(prop, 'colorAdds0',-4.0,4.0).step(0.002); //!! checkbox int
+f1.add(prop, 'colorAdds1',-4.0,4.0).step(0.002);
+f1.add(prop, 'color_max',1,500).step(1);
+
+f1.add(prop, 'freq_dirModule',1,512).step(1);
+f1.add(prop, 'freq_rangeMult',1,256).step(1);
+
+
+f1.open();
+
+var folder_fill = gui.addFolder('fill field');
+folder_fill.add(prop, 'fill_type',0,5).step(1);
+folder_fill.add(prop, 'fill');
+
+folder_fill.open();
+
+var f2 = gui.addFolder('Letters');
+f2.add(prop, 'op_per_frame',1,100000).step(10);//!! checkbox together
+f2.add(prop, 'iiAdd_each_op',0).step(1);
+
+
+f2.open();
+
+
+var f3 = gui.addFolder('ant');
+f3.add(ant, 'dir',0,4).step(0.01); //!! checkbox int
+
+f3.add(ant, 'x',0,dataSize-1).step(1);
+f3.open();
+
+function sleep(ms) {
+ms += new Date().getTime();
+while (new Date() < ms){}
+} 
+
+
+setTimeout(function run() {
+
+ 
+var t0=performance.now();
+for (var i = 0; i < prop.op_per_frame; i++,prop.ii_counter++) { //100000000
+
+	if(prop.ii_counter>prop.iiAdd_each_op)
+	{
+		prop.ii_counter=0;
+		prop.ii++; 
+		//if(ii>255) ii=0;
+//console.log(ant.dir);
+		osc.frequency.value=80+(ant.dir%prop.freq_dirModule)*prop.freq_rangeMult; //%4   Math.sin(ant.dir)*256;   //by dir
+		//osc.frequency.value=80+(dataset[ant.x][ant.y]%prop.freq_dirModule)*prop.freq_rangeMult; //by color
+		
+	}
+//sleep(2);
+
+  if(dataset[ant.x][ant.y]<prop.color_max) 
+  {
+	dataset[ant.x][ant.y]+=ant.dir%4;
+               datasetColor[ant.x][ant.y]=prop.ii;
+	ant.dir+=prop.colorAdds[0];
+  }
+  else
+
+ /* if(dataset[ant.x][ant.y]==122) 
+  {
+	dataset[ant.x][ant.y]=255;
+	ant.dir-=0.13;
+  }
+
+else*/
+
+  {
+  
+	dataset[ant.x][ant.y]-=ant.dir%4;
+             	datasetColor[ant.x][ant.y]=0;
+	ant.dir+=prop.colorAdds[1];
+  }
+  
+  switch(Math.floor(ant.dir%4))
+  //switch(Math.floor(ant.dir))
+  //switch(Math.floor(ant.dir))
+  {
+
+	case 0:
+	ant.x++;
+	break;
+	/*
+	case 4: 
+	ant.dir-=4; //#  //0
+	ant.x++;
+	break;*/
+	
+	
+	case 1:
+	ant.y++;
+	break;
+	
+	case 2:
+	ant.x--;
+	break;
+	
+	case 3:
+	ant.y--;
+	break;
+	
+	/*case -1:
+	ant.dir+=4;
+	ant.y--;
+	break;*/
+  }
+ 
+  if(ant.x>chartSize-1) ant.x=0;
+  else if(ant.x<0) ant.x=chartSize-1;
+  
+  if(ant.y>chartSize-1) ant.y=0;
+  else if(ant.y<0) ant.y=chartSize-1;
+
+  
+}
+document.getElementById("timer").innerHTML =performance.now()-t0;
+	
+
+	
+
+colorizeC_li();
+
+    imageData.data.set(buf8);
+    ctx.putImageData(imageData, 0, 0);
+	
+	imageDataC.data.set(buf8C);
+    ctxC.putImageData(imageDataC, 0, 0);
+	
+	
+  setTimeout(run, 1);
+}, 100);
+ 
+</script>
+</body>
+</html>

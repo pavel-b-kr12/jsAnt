@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+    <script type="text/javascript" src="../lib/dat.gui.min.js"></script>
+    <script type="text/javascript" src="../lib/FileSaver.js"></script>
+    <script type="text/javascript" src="../lib/Blob.js"></script>
+    <script type="text/javascript" src="../lib/canvas-toBlob.js"></script>
+	<script src="../common.js"></script>
+	<script src="../initGf.js"></script>
+    <style type="text/css">    </style>
+</head>
+<body>
+ms <span id="timer"></span> <br/>
+ms draw <span id="timerDraw"></span> <br/>
+dir <span id="dir"></span> <br/>
+speed <span id="speed"></span> <br/>
+dbg <span id="dbgHTM"></span> <br/>
+<script type="text/javascript">
+
+//const  bBanchmark=1
+
+
+
+
+
+    var chartSize = 400;
+    var dataSize = 400;
+	var dataSizeCenter=dataSize/2;
+initGf()
+
+
+
+function HtoRGB32(h) {
+/*		ret =	 //night curtain preset
+			//(255   << 24) |h*155;
+			  (255   << 24) |    // alpha
+			    ((h+188)%256 << 16) |    // blue
+                ((h+88)%256 <<  8) |    // green
+                h%256;            // red
+		return  ret;
+*/
+    var r, g, b, i, f, p, q, t;
+	h/=256;//360; //h%360;
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+
+    q = (1 - f );
+    t = f;
+    switch (i % 6) {
+        case 0: r = 255, g = t*255, b = 0; break;
+        case 1: r = q*255, g = 255, b = 0; break;
+        case 2: r = 0, g = 255, b = t*255; break;
+        case 3: r = 0, g = q*255, b = 255; break;
+        case 4: r = t*255, g = 0, b = 255; break;
+        case 5: r = 255, g = 0, b = q*255; break;
+    }
+
+    return 	((255   << 24) | (r << 16) | (g <<  8) |  b);  
+
+}
+
+//alert(((255   << 24) | (0 << 16) | (0 <<  8) |  0));  //-16777216  bk
+//alert(((255   << 24) | (0 << 16) | (0 <<  8) |  255));  //-16776961  b
+
+/*
+function HtoRGB32(h) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+
+    q = (1 - f );
+    t = f;
+    switch (i % 6) {
+        case 0: r = 1, g = t, b = 0; break;
+        case 1: r = q, g = 1, b = 0; break;
+        case 2: r = 0, g = 1, b = t; break;
+        case 3: r = 0, g = q, b = 1; break;
+        case 4: r = t, g = 0, b = 1; break;
+        case 5: r = 1, g = 0, b = q; break;
+    }
+    return 
+				  (255   << 24) |    // alpha
+			    (r*255 << 16) |    // blue
+                (g*255 <<  8) |    // green
+                b*255;            // red
+	;
+}*/
+
+function HtoRGB(h) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+
+    q = (1 - f );
+    t = f;
+    switch (i % 6) {
+        case 0: r = 1, g = t, b = 0; break;
+        case 1: r = q, g = 1, b = 0; break;
+        case 2: r = 0, g = 1, b = t; break;
+        case 3: r = 0, g = q, b = 1; break;
+        case 4: r = t, g = 0, b = 1; break;
+        case 5: r = 1, g = 0, b = q; break;
+    }
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+function HVtoRGB(h, v) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+
+    q = v * (1 - f );
+    t = v *  f;
+    switch (i % 6) {
+        case 0: r = v, g = t, b = 0; break;
+        case 1: r = q, g = v, b = 0; break;
+        case 2: r = 0, g = v, b = t; break;
+        case 3: r = 0, g = q, b = v; break;
+        case 4: r = t, g = 0, b = v; break;
+        case 5: r = v, g = 0, b = q; break;
+    }
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+
+
+
+
+
+var context = new AudioContext();
+var osc = context.createOscillator();
+var  g = context.createGain();
+osc.connect(g);
+g.connect(context.destination);
+osc.start(0);
+
+// One-liner to resume playback when user interacted with the page.
+document.addEventListener('click', function() {  //document.querySelector('button').addEventListener('click', function() {
+  context.resume().then(() => {
+    console.log('Playback resumed successfully');
+  });
+});
+
+//You may also create the AudioContext only when the user interacts with the page.
+/* !
+document.querySelector('button').addEventListener('click', function() {
+  var context = new AudioContext();
+  // Setup all nodes
+  ...
+});
+*/
+
+
+
+var prop={
+	bInt_:true,
+	get  bInt() { return this.bInt_; },
+	set  bInt(val) {
+		this.bInt_=val;
+		if(this.bInt_)
+		{
+			ant.x=~~ant.x;
+			ant.y=~~ant.y;
+			ant.dir=~~ant.dir;
+			
+			this.colorAdds0=~~this.colorAdds0;
+			this.colorAdds1=~~this.colorAdds1;
+			this.dirAdds0=~~this.dirAdds0;
+			this.dirAdds1=~~this.dirAdds1;
+		}
+		//!! data
+	},
+
+	//Antcolors : {},
+
+	color_max : 1,
+	colorAdds : [1, -1],
+	colorAdds0 : 0,
+	get  colorAdds0() { return this.colorAdds[0]; },
+	set  colorAdds0(val) { this.colorAdds[0]=prop.bInt_?~~val:val; }, //(this.bInt_)?~~val:val;
+
+	colorAdds1 : 0,
+	get  colorAdds1() { return this.colorAdds[1]; },
+	set  colorAdds1(val) { this.colorAdds[1]=prop.bInt_?~~val:val; },
+
+	dir_max : 4, //!!
+	dirAdds : [-1, 1],
+	dirAdds0 : 0,
+	get  dirAdds0() { return this.dirAdds[0]; },
+	set  dirAdds0(val) { this.dirAdds[0]=prop.bInt_?~~val:val; },
+
+	dirAdds1 : 0,
+	get  dirAdds1() { return this.dirAdds[1]; },
+	set  dirAdds1(val) { this.dirAdds[1]=prop.bInt_?~~val:val; },
+
+	
+	op_per_frame : 10,
+	iiAdd_each_op : 1, //e.g. for increment color by time left
+	sleep_d : 80,
+	ii : 0,
+	ii_counter : 0,
+
+	fill_type : 0,
+	bfill_clamp_to_max_colors:true,
+ 
+ 
+ fill: function ()
+	{
+	for(var xx=0; xx<dataSize; xx++)
+	{
+	for(var yy=0; yy<dataSize; yy++)
+	{
+		var ret=0;
+		 switch(prop.fill_type) //+ cast to int
+		 {
+		  case 0: ret= 0; break;
+		  case 1: ret= xx%2*(this.bfill_clamp_to_max_colors?this.color_max:255); break;
+		  
+		  case 2: ret= ((~~(xx%2))^(~~(yy%2)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 3: ret= xx%2*(this.bfill_clamp_to_max_colors?this.color_max/2:127)+yy%2 *(this.bfill_clamp_to_max_colors?this.color_max/2:127) ;  break;
+		  //((~~(d%2))^(~~((d/dataSize)%2)))*255; //(~~(x%2))^(~~(y%2))*255;
+		  case 4: ret= (~~(xx%2))*(this.bfill_clamp_to_max_colors?this.color_max/2:127)+(~~(yy%2)) *(this.bfill_clamp_to_max_colors?this.color_max/2:127) ;  break; //~~
+		   
+		  case 5: ret= Math.random()*255;  break;// Math.random == [0, 1) //?? 256  
+		  case 6: ret= Math.Round(Math.random()*this.color_max);  break;// Math.random == [0, 1) //?? 256  
+		  
+		  //~~ == Math.floor двойного побитового отрицания https://medium.com/@frontman/integer-%D0%B8-float-%D0%B2-javascript-9ca16ba1484f
+		  case 7: ret= xx%255; break;
+		  case 8: ret= xx%this.color_max; break;
+		 }
+		dataset[xx][yy]=ret;
+	}
+	}
+	},
+	
+	 //!! fade out 
+	clear_display_2:
+	 function ()
+	 {
+		for(var xx=0; xx<dataSize; xx++)
+		{
+		for(var yy=0; yy<dataSize; yy++)
+		{
+		datasetColor[xx][yy]=0; 
+		}
+		}
+	 },
+	 
+	 reset:
+	 function ()
+	 {
+	  this.fill();
+	  this.clear_display_2();
+	  ant.centerXY();
+	  ant.dir=0;
+	 },
+	
+	getFrequency_type:1,
+	freq_dirModule:4,
+	freq_rangeMult:128,
+	
+	display_range_for_data:122,
+
+	save_canvas: function ()
+	{
+		canvas.toBlob(function(blob) {saveAs(blob, "preset.png");}); //!! nm current preset
+		canvasC.toBlob(function(blob) {saveAs(blob, "preset_colorise.png");});
+	}
+}
+
+
+
+var datasetColor = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+var dataset = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+
+prop.fill();
+
+function getPresetJSON() {
+	return {
+  "preset": "preset1",
+  "closed": false,
+  "remembered": {
+    "Default": {
+      "0": {
+        "bInt": true,
+        "colorAdds0": 1,
+        "colorAdds1": -1,
+        "color_max": 1,
+        "dirAdds0": -1,
+        "dirAdds1": 1,
+        "getFrequency_type": 1,
+        "freq_dirModule": 4,
+        "freq_rangeMult": 128,
+        "fill_type": 0,
+        "bfill_clamp_to_max_colors": true,
+        "op_per_frame": 10,
+        "sleep_d": 80,
+        "iiAdd_each_op": 1,
+        "display_range_for_data": 122
+      },
+      "1": {
+        "Dir": 0,
+        "x": 186
+      }
+    },
+    "preset10": {
+      "0": {
+        "bInt": false,
+        "colorAdds0": 1,
+        "colorAdds1": -1,
+        "color_max": 59,
+        "dirAdds0": 0.718,
+        "dirAdds1": -0.85,
+        "getFrequency_type": 1,
+        "freq_dirModule": 37,
+        "freq_rangeMult": 19,
+        "fill_type": 3,
+        "bfill_clamp_to_max_colors": true,
+        "op_per_frame": 51,
+        "sleep_d": 36,
+        "iiAdd_each_op": 0,
+        "display_range_for_data": 122
+      },
+      "1": {
+        "Dir": -0.3180000000003038,
+        "x": 234
+      }
+    },
+    "rombDivided 8": {
+      "0": {
+        "bInt": false,
+        "colorAdds0": -1,
+        "colorAdds1": 0.6000000000000001,
+        "color_max": 58,
+        "dirAdds0": 0.904,
+        "dirAdds1": 0.28200000000000003,
+        "getFrequency_type": 2,
+        "freq_dirModule": 354,
+        "freq_rangeMult": 9,
+        "fill_type": 4,
+        "bfill_clamp_to_max_colors": false,
+        "op_per_frame": 123,
+        "sleep_d": 20,
+        "iiAdd_each_op": 0,
+        "display_range_for_data": 122
+      },
+      "1": {
+        "Dir": 2.956000000000004,
+        "x": 171
+      }
+    },
+    "rombDivided 80": {
+      "0": {
+        "bInt": false,
+        "colorAdds0": -0.5,
+        "colorAdds1": 1,
+        "color_max": 59,
+        "dirAdds0": 0.904,
+        "dirAdds1": 0.28200000000000003,
+        "getFrequency_type": 2,
+        "freq_dirModule": 354,
+        "freq_rangeMult": 9,
+        "fill_type": 4,
+        "bfill_clamp_to_max_colors": false,
+        "op_per_frame": 32,
+        "sleep_d": 20,
+        "iiAdd_each_op": 0,
+        "display_range_for_data": 122
+      },
+      "1": {
+        "Dir": 2.219999999999999,
+        "x": 164
+      }
+    },
+    "preset21": {
+      "0": {
+        "bInt": false,
+        "colorAdds0": 0.1,
+        "colorAdds1": -0.30000000000000004,
+        "color_max": 122,
+        "dirAdds0": 0.796,
+        "dirAdds1": -0.884,
+        "getFrequency_type": 3,
+        "freq_dirModule": 366,
+        "freq_rangeMult": 11,
+        "fill_type": 3,
+        "bfill_clamp_to_max_colors": true,
+        "op_per_frame": 5636,
+        "sleep_d": 14,
+        "iiAdd_each_op": 0,
+        "display_range_for_data": 122
+      },
+      "1": {
+        "Dir": 1.7120000000654483,
+        "x": 75
+      }
+    },
+    "preset20 nught curtain": {
+      "0": {
+        "bInt": false,
+        "colorAdds0": 0.1,
+        "colorAdds1": -0.30000000000000004,
+        "color_max": 122,
+        "dirAdds0": 0.834,
+        "dirAdds1": -0.884,
+        "getFrequency_type": 1,
+        "freq_dirModule": 478,
+        "freq_rangeMult": 7,
+        "fill_type": 3,
+        "bfill_clamp_to_max_colors": true,
+        "op_per_frame": 224,
+        "sleep_d": 14,
+        "iiAdd_each_op": 0,
+        "display_range_for_data": 122
+      },
+      "1": {
+        "Dir": 3.669999999999286,
+        "x": 347
+      }
+    }
+  },
+  "folders": {
+    "Flow Field": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "fill field": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "Letters": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "ant": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "display": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    }
+  }
+};
+}
+
+
+
+
+
+
+
+
+//@ https://jsfiddle.net/ikatyang/182ztwao/
+function createGUI()
+{
+//var gui = new dat.GUI //();
+<!-- ({ -->
+  <!-- load: JSON, -->
+  <!-- preset: 'Flow' -->
+<!-- }); -->
+//(
+//{ load: JSON.parse(prest123) } //if string
+//);
+var gui = new dat.GUI({ load: getPresetJSON(), preset: 'Preset1' });
+
+
+gui.remember(prop);
+gui.remember(ant);
+
+
+var f1 = gui.addFolder('Flow Field');
+f1.add(prop, 'bInt',0,1);
+
+f1.add(prop, 'colorAdds0',-4.0,4.0).step(0.1); //!! checkbox int  //prop.bInt_?1:
+f1.add(prop, 'colorAdds1',-4.0,4.0).step(0.1);
+f1.add(prop, 'color_max',1,500).step(1);
+f1.add(prop, 'dirAdds0',-4.0,4.0).step(0.002);
+f1.add(prop, 'dirAdds1',-4.0,4.0).step(0.002);
+
+f1.add(prop, 'getFrequency_type',1,10).step(1); //! max
+f1.add(prop, 'freq_dirModule',1,512).step(1);
+f1.add(prop, 'freq_rangeMult',1,256).step(1);
+f1.open();
+
+var folder_fill = gui.addFolder('fill field');
+folder_fill.add(prop, 'fill_type',0,5).step(1);
+folder_fill.add(prop, 'bfill_clamp_to_max_colors');
+folder_fill.add(prop, 'fill');
+folder_fill.add(prop, 'clear_display_2');
+folder_fill.add(prop, 'reset');
+folder_fill.open();
+
+var f2 = gui.addFolder('Letters');
+f2.add(prop, 'op_per_frame',1,100000).step(1);//!! checkbox together
+f2.add(prop, 'sleep_d',1,200).step(2);
+f2.add(prop, 'iiAdd_each_op',0).step(1);
+f2.open();
+
+
+var f3 = gui.addFolder('ant');
+f3.add(ant, 'Dir',0,4).step(0.01); //!! checkbox int
+f3.add(ant, 'x',0,dataSize-1).step(1);
+f3.add(ant, 'centerXY');
+f3.open();
+
+var f_display = gui.addFolder('display');
+f_display.add(prop, 'display_range_for_data',1,256).step(1);
+f_display.add(prop, 'save_canvas');
+f_display.open();
+}
+
+createGUI();
+
+prop.reset(); //!! after load preset
+
+function sleep(ms) { //!
+	ms += new Date().getTime();
+	while (new Date() < ms){}
+} 
+
+function setFrequency()
+{
+	var freq=0;
+	switch(prop.getFrequency_type)
+	{
+		case 0: freq=ant.dir; break;
+		case 1: freq=dataset[ant.x][ant.y]; break; //by color
+		
+		case 2: freq=dataSize-ant.x; break; //|  +ant.y
+		case 3: //distance from center
+		{
+			//let a = ant.x - dataSizeCenter;
+			//let b = ant.y - dataSizeCenter;
+			//let d = Math.sqrt( a*a + b*b );
+			//||
+			freq =Math.hypot(ant.x-dataSizeCenter, ant.y-dataSizeCenter);
+		}
+		break;
+		
+		case 4: //speed
+		{
+			ant.speed=Math.hypot(ant.x-ant.xt, ant.y-ant.yt);
+			ant.xt=ant.x;
+			ant.yt=ant.y;
+			freq =Math.hypot(ant.speed-dataSizeCenter, ant.y-dataSizeCenter);
+		}
+		break;
+	}
+
+	osc.frequency.value=60+(freq%prop.freq_dirModule)*prop.freq_rangeMult; //%4   Math.sin(ant.dir)*256;   //by dir
+}
+		
+var bBanchmark=0;
+var bSetFrequencyNow=false;
+setTimeout(function run() {
+
+//if(bBanchmark==1)
+
+	//console.log(ant.dir);
+ 
+var t0=performance.now();
+
+if(prop.bInt)
+{
+for (var i = 0; i < prop.op_per_frame; i++,prop.ii_counter++) { //100000000
+
+	if(prop.ii_counter>prop.iiAdd_each_op)
+	{
+		prop.ii_counter=0;
+		prop.ii++; 
+		//if(ii>255) ii=0;
+		bSetFrequencyNow=true; 
+	}
+
+	if(prop.op_per_frame<2) sleep(prop.sleep_d); //! update to both part or if(prop.bInt)
+
+	
+  if(dataset[ant.x][ant.y]<prop.color_max) 
+  {
+	//dataset[ant.x][ant.y]=ant.dir%4;
+	//dataset[ant.x][ant.y]++;
+	dataset[ant.x][ant.y]+=prop.colorAdds0; //	ant.dir%4	dataset[ant.x][ant.y]/256
+               datasetColor[ant.x][ant.y]=prop.ii;
+	ant.dir+=prop.dirAdds0;
+  }
+  else
+
+ /* if(dataset[ant.x][ant.y]==122) 
+  {
+	dataset[ant.x][ant.y]=255;
+	ant.dir-=0.13;
+  }
+
+else*/
+
+  {
+  
+	dataset[ant.x][ant.y]+=prop.colorAdds1;
+             	datasetColor[ant.x][ant.y]=0;
+	ant.dir+=prop.dirAdds1;
+  }
+  
+ 
+		if(bSetFrequencyNow) //freq based on current cell state after ant act
+		{
+			bSetFrequencyNow=false; 
+			setFrequency();	
+		}
+		
+  switch(ant.dir)
+  {
+	case 0:
+	ant.x++;
+	break;
+	case 4: 
+	ant.dir=0;
+	ant.x++;
+	break;
+	
+	
+	case 1:
+	ant.y++;
+	break;
+	
+	case 2:
+	ant.x--;
+	break;
+	
+	case 3:
+	ant.y--;
+	break;
+	case -1:
+	ant.dir=3;
+	ant.y--;
+	break;
+  }
+   
+  if(ant.x>chartSize-1) ant.x=0;
+  else if(ant.x<0) ant.x=chartSize-1;
+  
+  if(ant.y>chartSize-1) ant.y=0;
+  else if(ant.y<0) ant.y=chartSize-1;
+
+}
+}
+else
+{
+for (var i = 0; i < prop.op_per_frame; i++,prop.ii_counter++) { //100000000
+
+	if(prop.ii_counter>prop.iiAdd_each_op)
+	{
+		prop.ii_counter=0;
+		prop.ii++; 
+		//if(ii>255) ii=0;
+		bSetFrequencyNow=true; 
+	}
+	if(prop.op_per_frame<2) sleep(prop.sleep_d); //! update to both part or if(prop.bInt)
+
+  if(dataset[ant.x][ant.y]<prop.color_max) 
+  {
+	//dataset[ant.x][ant.y]=ant.dir%4;
+	//dataset[ant.x][ant.y]++;
+	dataset[ant.x][ant.y]+=prop.colorAdds0; //| /(1+Math.abs(ant.dir)) //	ant.dir%4	dataset[ant.x][ant.y]/256
+               datasetColor[ant.x][ant.y]=prop.ii;
+	ant.dir+=prop.dirAdds0;
+  }
+  else
+
+ /* if(dataset[ant.x][ant.y]==122) 
+  {
+	dataset[ant.x][ant.y]=255;
+	ant.dir-=0.13;
+  }
+
+else*/
+
+  {
+  
+	dataset[ant.x][ant.y]+=prop.colorAdds1; //| /(1+Math.abs(ant.dir))
+             	datasetColor[ant.x][ant.y]=0;
+	ant.dir+=prop.dirAdds1;
+  }
+  
+  		if(bSetFrequencyNow) //freq based on current cell state after ant act
+		{
+			bSetFrequencyNow=false; 
+			setFrequency();	
+		}
+		
+  switch(~~(ant.dir%4))
+  //switch(Math.floor(ant.dir))
+  {
+
+	case 0:
+	ant.x++; //!! float
+	
+					//if(Math.abs(ant.dir)>1000) ant.dir%=4;
+	break;
+	/*
+	case 4: 
+	ant.dir-=4; //#  //0
+	ant.x++;
+	break;*/
+	
+	
+	case 1:
+	ant.y++;
+	break;
+	
+	case 2:
+	ant.x--;
+	break;
+	
+	case 3:
+	ant.y--;
+	break;
+	
+	/*case -1:
+	ant.dir+=4;
+	ant.y--;
+	break;*/
+  }
+  if(ant.dir>=4 ||ant.dir<0) ant.dir%=4;
+ // ant.dir=Math.abs(ant.dir);
+ 
+  if(ant.x>chartSize-1) ant.x=0;
+  else if(ant.x<0) ant.x=chartSize-1;
+  
+  if(ant.y>chartSize-1) ant.y=0;
+  else if(ant.y<0) ant.y=chartSize-1;
+}
+}
+
+  
+document.getElementById("timer").innerHTML =performance.now()-t0;
+document.getElementById("dir").innerHTML =ant.dir;
+document.getElementById("speed").innerHTML =ant.speed;
+
+	
+t0=performance.now();
+	for (var y = 0; y < canvasHeight; ++y) {
+        for (var x = 0; x < canvasWidth; ++x) {
+            var value = dataset[y][x]*prop.display_range_for_data; //#122
+			data[y * canvasWidth + x] = HtoRGB32(value);
+
+			var valueC = datasetColor[y][x];
+            dataC[y * canvasWidth + x] = HtoRGB32(valueC); 		//document.getElementById("dbgHTM").innerHTML =valueC;
+        }
+    }
+
+    imageData.data.set(buf8);    ctx.putImageData(imageData, 0, 0);
+	
+	imageDataC.data.set(buf8C);  ctxC.putImageData(imageDataC, 0, 0);
+	
+document.getElementById("timerDraw").innerHTML =performance.now()-t0;
+	
+  setTimeout(run, 1);
+}, 100);
+
+
+
+	
+
+	
+	
+</script>
+</body>
+</html>

@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title></title>
+<script type="text/javascript" src="lib/d3.v3.min.js"></script>
+<script type="text/javascript" src="lib/dat.gui.min.js"></script>
+<script type="text/javascript" src="lib/FileSaver.js"></script>
+<script type="text/javascript" src="lib/Blob.js"></script>
+<script type="text/javascript" src="lib/canvas-toBlob.js"></script>
+
+<script type="text/javascript" src="common.js"></script>
+<script type="text/javascript" src="presets.js"></script>
+<style type="text/css">
+canvas { /*no smooth zoom filtering*/ /* !! settings */
+	image-rendering: optimizeSpeed;             // Older versions of FF
+	image-rendering: -moz-crisp-edges;          // FF 6.0+
+	image-rendering: -webkit-optimize-contrast; // Webkit (non standard naming)
+	image-rendering: -o-crisp-edges;            // OS X & Windows Opera (12.02+)
+	image-rendering: crisp-edges;               // Possible future browsers.
+	-ms-interpolation-mode: nearest-neighbor;   // IE (non standard naming)
+}
+</style>
+</head>
+<body>
+<h2 id='startMsg'>click to start</h2>
+ms <span id="timer"></span> <br/>
+ms draw <span id="timerDraw"></span> <br/>
+<!-- dir <span id="dir"></span> <br/> -->
+ant.i_ant <span id="i_ant"></span> <br/>
+speed_measured <span id="speed_measured"></span> <br/>
+dbgHTM <span id="dbgHTM"></span> <br/>
+dbgHTM1 <span id="dbgHTM1"></span> <br/>
+
+<a id="save"><button type="button" onClick="save()">SAVE with ant in name</button></a>
+<a id="load"><button type="button" onClick="load()">LOAD</button></a>
+<input type="file" id="inpFile" accept=".png"><!-- TODO https://jsfiddle.net/api/mdn/	https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file -->
+
+<br/>
+
+
+<!-- 
+label {
+   cursor: pointer;
+}
+
+#upload-photo {
+   opacity: 0;
+   position: absolute;
+   z-index: -1;
+}
+
+<label for="upload-photo">Browse...</label>
+<input type="file" name="photo" id="upload-photo" />
+
+@@@ https://jsfiddle.net/api/mdn/ -->
+	<!-- https://tympanus.net/codrops/2015/09/15/styling-customizing-file-inputs-smart-way/ -->
+
+<script type="text/javascript">
+
+//---------------------------------------------------- load https://stackoverflow.com/questions/10906734/how-to-upload-image-into-html5-canvas
+// https://stackoverflow.com/questions/11247790/reading-a-png-image-in-node-js
+// FileReader https://stackoverflow.com/questions/13938686/can-i-load-a-local-file-into-an-html-canvas-element
+var fileLoaded=null;
+document.getElementById('inpFile').onchange = function(e) {
+  var img = new Image();
+  img.onload = draw;
+  img.onerror = failed;
+  img.src = URL.createObjectURL(this.files[0]);
+  
+  fileLoaded=this.files[0];
+  document.getElementById("dbgHTM").innerHTML=this.files[0].name.split("_")[2].split(';')[0];//document.getElementById("canvL").id;
+};
+function draw() {
+	var ant_v=fileLoaded.name.split("_")[2].split(';')[0];
+	switch(ant_v)
+	{
+	 case '1': 
+		alert();
+		
+	 break;
+	}
+
+  var canvas = document.getElementById('canvL');
+  canvas.width = this.width;
+  canvas.height = this.height;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(this, 0,0);
+}
+function failed() {
+  console.error("The provided file couldn't be loaded as an Image media");
+}
+//----------------------------------------------------
+function antToString(){
+ //TODO
+ return "1;12;312;4123;2;-2;" //1st is version
+}
+
+function save(){
+//https://stackoverflow.com/questions/11112321/how-to-save-canvas-as-png-image
+//https://stackoverflow.com/questions/15811897/how-to-save-a-canvas-with-image-to-a-png-file
+		var t = new Date()
+
+        var download = document.getElementById("save");
+		download.download="ant_"+
+		t.getFullYear()  + "." + (t.getMonth() + 1) + "." + t.getDate()+ ".."+ t.getHours()+ "."+ t.getMinutes()+ "."+ t.getSeconds()+
+		"_"+antToString()+
+		".png"
+        var image = document.getElementById("canvL").toDataURL("image/png").replace("image/png", "image/octet-stream");
+        download.setAttribute("href", image);
+    }
+//----------------------------------------------------
+
+//const  bBanchmark=1
+
+    var chartSize = 400;
+    var dataSize = 400;
+	var dataSizeCenter=dataSize/2;
+	
+	var canvas_scale = 2;
+	var canvasWidth  = dataSize; //canvas.width;
+    var canvasHeight = dataSize; //canvas.height;
+//-------1st
+
+    var canvas = d3.select('body').append('canvas')
+        .style({width: chartSize*canvas_scale + 'px', height: chartSize*canvas_scale + 'px'}) //position: 'absolute', 
+        .attr({width: dataSize, height: dataSize})
+        .node();
+	canvas.id='canvL';
+
+											
+    var ctx = canvas.getContext('2d');
+	//ctx.webkitImageSmoothingEnabled = false;
+	//ctx.mozImageSmoothingEnabled = false;
+	//ctx.imageSmoothingEnabled = false;
+	
+	//ctx.scale(4,4); //nv
+	//ctx.fillStyle = "red";	ctx.fill();
+
+    var imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+
+    var buf = new ArrayBuffer(imageData.data.length);
+    var buf8 = new Uint8ClampedArray(buf);
+    var data = new Uint32Array(buf);
+//---------2nd
+	var canvasC = d3.select('body').append('canvas')
+	.style({ width: chartSize*canvas_scale + 'px', height: chartSize*canvas_scale + 'px'})
+	.attr({width: dataSize, height: dataSize})
+	.node();
+
+    var ctxC = canvasC.getContext('2d');
+    var imageDataC = ctxC.getImageData(0, 0, canvasWidth, canvasHeight);
+
+    var bufC = new ArrayBuffer(imageDataC.data.length); //@https://stackoverflow.com/questions/16679158/javascript-imagedata-typed-array-read-whole-pixel
+    var buf8C = new Uint8ClampedArray(bufC);
+    var dataC = new Uint32Array(bufC);
+//---------zoom https://stackoverflow.com/questions/40314220/hover-an-image-and-show-a-zoomed-version-of-an-area-around-the-cursor-in-a-canva
+	d3.select('body').append('br')
+	var canvasZoom = d3.select('body').append('canvas')
+	//.style({ width: 256*1 + 'px', height: 256*1 + 'px'})
+	.node();
+    var ctxZ = canvasC.getContext('2d');
+    var imageDataZ = ctxC.getImageData(0, 0, 128, 128);
+
+    var bufZ = new ArrayBuffer(imageDataZ.data.length);
+    var buf8Z = new Uint8ClampedArray(bufZ);
+    var dataZ = new Uint32Array(bufZ);
+
+//---------
+var fieldR =  d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+var fieldG =  d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+var fieldB =  d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+
+
+
+var Ant={
+	N: 0,
+	dir : 0,
+		get Dir() { return this.dir; },
+		set Dir(val) { this.dir=prop.bInt_?~~val:val; }, 
+	x : dataSizeCenter, 
+	y: dataSizeCenter,
+
+	centerXY: function ()
+	{
+	 this.x=~~dataSizeCenter;
+	 this.y=~~dataSizeCenter;
+	},
+		
+	xt:0,	//prev pos
+	yt:0,
+	xs:dataSizeCenter, //smooth
+	ys:dataSizeCenter,
+
+
+	//dxy:0 //speed on this segment
+	speed_measured:0,
+		
+	selectNext:function()
+	{
+		ant_selected_i++;
+		if(ant_selected_i>=ants.length) ant_selected_i=0;
+		ant=ants[ant_selected_i];
+	},
+	
+	//----------------------------- detect repeats
+	hist:[],
+	histXY:[],
+	histRepeatCheck_len:2000,
+	histWaitNewData:new Array(this.histRepeatCheck_len).fill(0), //to skip while array values shift out
+	histCheck:function() //tst ant.histXY[0]
+	{
+		this.hist.push(this.dir);
+		if(this.hist.length>this.histRepeatCheck_len) this.hist.shift()
+		this.histXY.push([this.x, this.y]);
+		if(this.histXY.length>this.histRepeatCheck_len) this.histXY.shift()
+		
+				
+		/*
+		str=''
+		for(l=0;l<10;l++)
+		{
+			if(l>=this.histXY.length) break;
+			str+=this.histXY[l][0]+"."+this.histXY[l][1]+"\n\r"
+		}
+		document.getElementById("dbgHTM1").innerHTML=str;
+		*/
+
+		for(l=prop.repeat_min;l<this.hist.length/2-1;l++)
+		{
+			//this optimisation do only 2x fast, because?
+			this.histWaitNewData[l]--;		//tst ant.histWaitNewData
+			if(this.histWaitNewData[l]>0) continue;
+
+
+			
+			for(i=0;i<l;i++)
+			{
+				if(this.hist[this.hist.length-1-i]!=this.hist[this.hist.length-1-i-l])
+				{
+					this.histWaitNewData[l]=l-i; //time before value shift out and we check again
+					break;
+				}
+				if(i==l-1) 
+				{
+					//histStr=''
+					for(h=0;h<l;h++)
+					{
+						//histStr+=this.hist[this.hist.length-1-h]+" ";
+						//xxx=this.histXY[this.hist.length-1-h]
+						//if(h<this.histXY.length)
+						{
+							datasetColor[this.histXY[this.hist.length-1-h][0]][this.histXY[this.hist.length-1-h][1]]=iic360;
+							//20+1/l*360  +this.histXY[this.hist.length-1-h][0]+this.histXY[this.hist.length-1-h][1];
+						} //!! else ?
+					}
+						iic360+=8; //!!! fix colorisr for this and DIR, 
+						this.hist=[]
+					document.getElementById("dbgHTM").innerHTML=l ;
+					
+				}
+			}
+		}
+		
+	},
+	
+	i_ant:0 //ops
+
+}
+
+var iic360=0;
+var xxx=0
+var ants=[Object.create(Ant), Object.create(Ant)];
+ants[1].N=1;
+var ant_selected_i=0;
+var ant=ants[0];
+ 
+
+
+//-------------------------------------- colorize
+function hueToRGB( v1,  v2,  vH) { //@ speed
+	if (vH < 0.0) vH+= 1.0;
+	if (vH > 1.0) vH -= 1.0;
+	if ((6.0 * vH) < 1.0) return (v1 + (v2 - v1) * 6.0 * vH);
+	if ((2.0 * vH) < 1.0) return (v2);
+	if ((3.0 * vH) < 2.0) return (v1 + (v2 - v1) * ((2.0 / 3.0) - vH) * 6.0);
+	return v1*255;
+}
+
+function HtoRGB32(h) {
+	if(prop.colorizeDataset=="night curtain")
+	{
+		let	ret =	 //night curtain preset
+				//(255   << 24) |h*155;
+				  (255   << 24) |    // alpha
+					((h+prop.colorizeDataset_settings[0])%256 << 16) |    // blue
+					((h+prop.colorizeDataset_settings[1])%256 <<  8) |    // green
+					(h+prop.colorizeDataset_settings[2])%256;            // red
+			return  ret;
+	}
+
+    var r, g, b, i, f, p, q, t;
+	h/=256;//360; //h%360;
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+
+    q = (1 - f );
+    t = f;
+    switch (i % 6) {
+        case 0: r = 255, g = t*255, b = 0; break;
+        case 1: r = q*255, g = 255, b = 0; break;
+        case 2: r = 0, g = 255, b = t*255; break;
+        case 3: r = 0, g = q*255, b = 255; break;
+        case 4: r = t*255, g = 0, b = 255; break;
+        case 5: r = 255, g = 0, b = q*255; break;
+    }
+
+    return 	((255   << 24) | (r << 16) | (g <<  8) |  b);  
+
+}
+
+//alert(((255   << 24) | (0 << 16) | (0 <<  8) |  0));  //-16777216  bk
+//alert(((255   << 24) | (0 << 16) | (0 <<  8) |  255));  //-16776961  b
+
+/*
+function HtoRGB32(h) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+
+    q = (1 - f );
+    t = f;
+    switch (i % 6) {
+        case 0: r = 1, g = t, b = 0; break;
+        case 1: r = q, g = 1, b = 0; break;
+        case 2: r = 0, g = 1, b = t; break;
+        case 3: r = 0, g = q, b = 1; break;
+        case 4: r = t, g = 0, b = 1; break;
+        case 5: r = 1, g = 0, b = q; break;
+    }
+    return 
+				  (255   << 24) |    // alpha
+			    (r*255 << 16) |    // blue
+                (g*255 <<  8) |    // green
+                b*255;            // red
+	;
+}*/
+
+function HtoRGB(h) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+
+    q = (1 - f );
+    t = f;
+    switch (i % 6) {
+        case 0: r = 1, g = t, b = 0; break;
+        case 1: r = q, g = 1, b = 0; break;
+        case 2: r = 0, g = 1, b = t; break;
+        case 3: r = 0, g = q, b = 1; break;
+        case 4: r = t, g = 0, b = 1; break;
+        case 5: r = 1, g = 0, b = q; break;
+    }
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+function HVtoRGB(h, v) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+
+    q = v * (1 - f );
+    t = v *  f;
+    switch (i % 6) {
+        case 0: r = v, g = t, b = 0; break;
+        case 1: r = q, g = v, b = 0; break;
+        case 2: r = 0, g = v, b = t; break;
+        case 3: r = 0, g = q, b = v; break;
+        case 4: r = t, g = 0, b = v; break;
+        case 5: r = v, g = 0, b = q; break;
+    }
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+//-------------------------------------- 
+
+
+
+var datasetColor = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+var dataset = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+
+var prop={
+	antType:'max_or_add', //##!! 0 enum
+	antTypes:[
+	'max_or_add',
+	'classic',
+	'test',
+	],
+
+	bInt_:true,
+	get  bInt() { return this.bInt_; },
+	set  bInt(val) {
+		this.bInt_=val;
+		if(this.bInt_)
+		{
+			ant.x=~~ant.x;
+			ant.y=~~ant.y;
+			ant.dir=~~ant.dir;
+			
+			this.colorAdds0=~~this.colorAdds0;
+			this.colorAdds1=~~this.colorAdds1;
+			this.dirAdds0=~~this.dirAdds0;
+			this.dirAdds1=~~this.dirAdds1;
+		}
+		
+		if(this.bfillAfterChange) this.fillClear();
+		//!! data
+	},
+
+	//Antcolors : {},
+
+	color_max : 1,
+	colorAdds : [1, -1],
+	colorAdds0 : 0,
+	get  colorAdds0() { return this.colorAdds[0]; },
+	set  colorAdds0(val) { this.colorAdds[0]=prop.bInt_?~~val:val; if(this.bfillAfterChange) this.fillClear(); }, //(this.bInt_)?~~val:val;
+
+	colorAdds1 : 0,
+	get  colorAdds1() { return this.colorAdds[1]; },
+	set  colorAdds1(val) { this.colorAdds[1]=prop.bInt_?~~val:val; if(this.bfillAfterChange) this.fillClear(); },
+
+	dir_max : 4, //!!
+	dirAdds : [-1, 1],
+	dirAdds0 : 0,
+	get  dirAdds0() { return this.dirAdds[0]; },
+	set  dirAdds0(val) { this.dirAdds[0]=prop.bInt_?~~val:val; if(this.bfillAfterChange) this.fillClear(); },
+
+	dirAdds1 : 0,
+	get  dirAdds1() { return this.dirAdds[1]; },
+	set  dirAdds1(val) { this.dirAdds[1]=prop.bInt_?~~val:val; if(this.bfillAfterChange) this.fillClear(); },
+
+	
+	op_per_frame : 10,
+	iiAdd_each_op : 1, //e.g. for increment color by time left
+	sleep_d : 50,
+	ii : 0, //++ each iiAdd_each_op
+	snd_i:0,
+	colorize_i : 0,
+	colorize_i_add : 0.01,
+	//colorize_i360 : 0,
+	colorize_i360t: 0,
+	colorize_i360t_add: 0.01,
+	
+	colorizeDataset:0, 
+	colorizeDataset_type: [ 'data',"night curtain"],
+	colorizeDataset_settings: [0,88,188], //R G B  "night curtain"
+	
+	colorize: 'histCheck',//'prop.ii',
+	colorize_type: ['visit', 'prop.ii','ant.dir','dataset','histCheck'],
+	
+	repeat_min:50,
+	print_hist:function()
+	{
+		histStr='';
+		for(h=0;h<ant.hist.length;h++)
+		{
+			histStr+=ant.hist[ant.hist.length-1-h]+"\r\n";
+			//xxx=this.histXY[this.hist.length-1-h]
+			//if(h<this.histXY.length)
+			{
+			//	datasetColor[this.histXY[this.hist.length-1-h][0]][this.histXY[this.hist.length-1-h][1]]=iic360;
+				//20+1/l*360  +this.histXY[this.hist.length-1-h][0]+this.histXY[this.hist.length-1-h][1];
+			} //!! else ?
+		}
+			//iic360+=800.01;
+			//			this.hist=[]
+			//		document.getElementById("dbgHTM").innerHTML=l ;
+		alert(histStr);
+	},
+	
+	bfill_clamp_to_max_colors:true,
+	bfillAfterChange:true,
+ 
+ fill_type : 'fill_0', // from fillFunctions
+ //fillFunctions: {	'clear':0, 'A': 0, 'B': 1, 'C':2 },
+ fillFunctions: [
+ 'fill_0',
+ 'fill_255',
+ 'fill_1',
+ 'fill_half',
+ 'fill_halfDiag',
+ 'fill_99',
+ 'columns255',
+ 'columns_color_max_or_1',
+ 'columns3_color_max_or_1',
+ 'checkers',
+ 'checkers_f',
+ 'checkers_and_f',
+ 'checkers_andand_f',
+ 
+ 'checkers3',
+ 'checkers3AND',
+ 'checkers3ANDAND',
+ 'checkers3OR',
+ 'checkers3is0',
+ 'checkers3is0AND',
+ 
+ 'checkers4',
+ 'checkers4AND',
+ 'checkers4ANDAND',
+ 'checkers4OR',
+ 'checkers4is0',
+ 'checkers4is0AND',
+ 
+ 
+ 'checkers5',
+ 'checkers5AND',
+ 'checkers5ANDAND',
+ 'checkers5OR',
+ 'checkers5is0',
+ 'checkers5is0AND', 
+ 
+ 'checkers7',
+ 'checkers7AND',
+ 'checkers7ANDAND',
+ 'checkers7OR',
+ 'checkers7is0',
+ 'checkers7is0AND',
+ 
+ 'checkers8',
+ 'checkers8AND',
+ 'checkers8ANDAND',
+ 'checkers8OR',
+ 'checkers8is0',
+ 'checkers8is0AND',
+ 
+
+ 'checkers4/2+8/2',
+ 'checkersA',
+ 'checkersAn',
+ 'rand0color_max',
+ 'rand*255',
+ 'rand*color_max',
+ 'x%255',
+ 'x%color_max'
+ ],
+ 
+ fill: function ()
+	{
+	//if(typeof(this.fill_type)=='string') this.fill_type=parseInt(this.fill_type); //dat gui change type to str
+	
+	for(var xx=0; xx<dataSize; xx++)
+	{
+	for(var yy=0; yy<dataSize; yy++)
+	{
+		var ret=0;
+		 switch(prop.fill_type) //+ cast to int
+		 {
+		  case 'fill_0': ret= 0; break;
+		  case 'fill_1': ret= 1; break;
+		  case 'fill_255': ret= 255; break;
+		  case 'fill_half': ret=xx>dataSize/2?255:0; break;
+		  case 'fill_halfDiag': ret=(xx+yy)>dataSize?255:0; break;
+		  case 'fill_99': ret= 99; break;
+		  case 'columns255': ret= xx%2*255; break;
+		  case 'columns_color_max_or_1': ret= xx%2*(this.bfill_clamp_to_max_colors?this.color_max:1); break;
+		  case 'columns3_color_max_or_1': ret= xx%3*(this.bfill_clamp_to_max_colors?this.color_max:1); break;
+											  //~~ == Math.floor двойного побитового отрицания https://medium.com/@frontman/integer-%D0%B8-float-%D0%B2-javascript-9ca16ba1484f
+		  case 'checkers': ret= ((~~(xx%2))^(~~(yy%2)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers_f': ret= ((xx%2)^(yy%2) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers_and_f': ret= ((xx%2)&(yy%2) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers_andand_f': ret= ((xx%2)&&(yy%2) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  
+		  case 'checkers3':			ret= ((~~(xx%3))^(~~(yy%3)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers3AND':		ret= ((~~(xx%3))&(~~(yy%3)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers3ANDAND':	ret= ((~~(xx%3))&&(~~(yy%3)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers3OR':		ret= ((~~(xx%3))^(~~(yy%3)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers3is0':		ret= ((~~(xx%3)==0)^(~~(yy%3)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers3is0AND':	ret= ((~~(xx%3)==0)&(~~(yy%3)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  
+		  
+		  case 'checkers4':			ret= ((~~(xx%4))^(~~(yy%4)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers4AND':		ret= ((~~(xx%4))&(~~(yy%4)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers4ANDAND':	ret= ((~~(xx%4))&&(~~(yy%4)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers4OR':		ret= ((~~(xx%4))^(~~(yy%4)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers4is0':		ret= ((~~(xx%4)==0)^(~~(yy%4)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers4is0AND':	ret= ((~~(xx%4)==0)&(~~(yy%4)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;		
+		  
+		  case 'checkers5':			ret= ((~~(xx%5))^(~~(yy%5)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers5AND':		ret= ((~~(xx%5))&(~~(yy%5)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers5ANDAND':	ret= ((~~(xx%5))&&(~~(yy%5)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers5OR':		ret= ((~~(xx%5))^(~~(yy%5)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers5is0':		ret= ((~~(xx%5)==0)^(~~(yy%5)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers5is0AND':	ret= ((~~(xx%5)==0)&(~~(yy%5)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  		  
+		  case 'checkers7':			ret= ((~~(xx%7))^(~~(yy%7)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers7AND':		ret= ((~~(xx%7))&(~~(yy%7)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers7ANDAND':	ret= ((~~(xx%7))&&(~~(yy%7)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers7OR':		ret= ((~~(xx%7))^(~~(yy%7)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers7is0':		ret= ((~~(xx%7)==0)^(~~(yy%7)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers7is0AND':	ret= ((~~(xx%7)==0)&(~~(yy%7)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  		  
+		  case 'checkers8':			ret= ((~~(xx%8))^(~~(yy%8)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers8AND':		ret= ((~~(xx%8))&(~~(yy%8)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers8ANDAND':	ret= ((~~(xx%8))&&(~~(yy%8)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers8OR':		ret= ((~~(xx%8))^(~~(yy%8)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers8is0':		ret= ((~~(xx%8)==0)^(~~(yy%8)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+		  case 'checkers8is0AND':	ret= ((~~(xx%8)==0)&(~~(yy%8)==0) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
+
+		  case 'checkers4/2+8/2': ret=	((~~(xx%4))^(~~(yy%4)) )*(this.bfill_clamp_to_max_colors?this.color_max:255)/2 +
+										((~~(xx%8))^(~~(yy%8)) )*(this.bfill_clamp_to_max_colors?this.color_max:255)/2 ;  break;
+		  case 'checkersA': ret= xx%2*(this.bfill_clamp_to_max_colors?this.color_max/2:127)+yy%2 *(this.bfill_clamp_to_max_colors?this.color_max/2:127) ;  break;
+		  //((~~(d%2))^(~~((d/dataSize)%2)))*255; //(~~(x%2))^(~~(y%2))*255;
+		  case 'checkersAn': ret= (~~(xx%2))*(this.bfill_clamp_to_max_colors?this.color_max/2:127)+(~~(yy%2)) *(this.bfill_clamp_to_max_colors?this.color_max/2:127) ;  break; //~~
+		  
+		  case 'rand0color_max': ret=Math.random() >= 0.5 ?this.color_max:0;  break;
+		  case 'rand*255': ret= Math.random()*255;  break;			// Math.random == [0, 1) //?? 255 
+		  case 'rand*color_max': ret= Math.Round(Math.random()*this.color_max);  break;
+
+		  case 'x%255': ret= xx%255; break;
+		  case 'x%color_max': ret= xx%this.color_max; break;
+		 }
+		dataset[xx][yy]=ret;
+	}
+	}
+	},
+	
+	 //!! fade out 
+	clear_display_2:
+	 function ()
+	 {
+		for(var xx=0; xx<dataSize; xx++)
+		{
+		for(var yy=0; yy<dataSize; yy++)
+		{
+		 datasetColor[xx][yy]=-1;  //-1 is black    //@@ 0
+		}
+		}
+	 },
+	 
+	 fillClear:
+	 function ()
+	 {
+	  this.fill();
+	  this.clear_display_2();
+	 },
+	 
+	 reset:
+	 function ()
+	 {
+	  this.fill();
+	  this.clear_display_2();
+	  ant.centerXY();
+	  ant.dir=0;
+	 },
+	
+
+	getFrequency_type:'',
+	getFrequency_types:[
+	'',
+	'dir',
+	'dataset',
+	'dist_x',
+	'dist_center',
+	'dist_smooth',
+	'speed',
+	'visit',
+	'visit_dif'
+	],
+	
+	freq_dirModule:4,
+	freq_rangeMult:128,
+	
+	display_range_for_data:122,
+
+	save_canvas: function ()
+	{
+		canvas.toBlob(function(blob) {saveAs(blob, "preset.png");}); //!! nm current preset
+		canvasC.toBlob(function(blob) {saveAs(blob, "preset_colorise.png");});
+	}
+}
+
+
+function set_datasetColor_by_Colorize()
+{
+	prop.snd_i++;
+	prop.ii_anim_color+=.001;
+	
+	//now after loop  colorize_i360t
+	//prop.colorize_i360+=.001;
+	//prop.colorize_i360+=1/prop.op_per_frame/10000;//.0001;//!!
+	//if(prop.colorize_i360>360)prop.colorize_i360-=360;
+	
+	prop.colorize_i+=1/prop.op_per_frame;//.0001;//!!
+	
+
+	if(prop.colorize_i>prop.iiAdd_each_op)
+	{
+		prop.colorize_i=0;
+		prop.ii++; 
+		//if(ii>255) ii=0;
+		setFrequency();	//freq based on current cell state after ant act
+	}
+	if(prop.op_per_frame<2) sleep(prop.sleep_d); //! update to both part or if(prop.bInt)
+
+
+	switch(prop.colorize)
+	{
+		case 'visit': datasetColor[ant.x][ant.y]+=1*prop.colorize_i_add;	break;
+		case 'prop.ii': datasetColor[ant.x][ant.y]=prop.ii;	break;
+		case 'ant.dir': datasetColor[ant.x][ant.y]=ant.dir*64;	break;
+		case 'dataset': datasetColor[ant.x][ant.y]=dataset[ant.x][ant.y];	break;
+		case 'histCheck': 	break;
+	}
+	
+	if(ant.N==ant_selected_i)	ant.histCheck();
+}
+
+
+//@ https://jsfiddle.net/ikatyang/182ztwao/
+//@2 https://stackoverflow.com/questions/16166440/refresh-dat-gui-with-new-values
+function createGUI()
+{
+var gui = new dat.GUI({ load: getPresetJSON(), preset: 'Preset1' });
+
+gui.remember(prop);
+gui.remember(ant);
+
+
+var f1 = gui.addFolder('ant');
+f1.add(prop, 'antType',prop.antTypes);
+f1.add(prop, 'bInt',0,1);
+f1.add(prop, 'colorAdds0',-4.0,4.0).step(0.1); //!! checkbox int  //prop.bInt_?1:
+f1.add(prop, 'colorAdds1',-4.0,4.0).step(0.1);
+f1.add(prop, 'color_max',1,500).step(1);
+f1.add(prop, 'dirAdds0',-4.0,4.0).step(0.002);
+f1.add(prop, 'dirAdds1',-4.0,4.0).step(0.002);
+f1.open();
+
+var folder_fill = gui.addFolder('fill field');
+//folder_fill.add(prop, 'fill_type', { 'A': 0, 'B': 1, 'C':2 } );// C:prop.fill_type => "str src of function" //can be in ' ' or not
+folder_fill.add(prop, 'fill_type', prop.fillFunctions )
+	.onChange(function (value) {
+		if(prop.bfillAfterChange) prop.fill(value);
+	});
+folder_fill.add(prop, 'bfillAfterChange');
+folder_fill.add(prop, 'bfill_clamp_to_max_colors');
+folder_fill.add(prop, 'fill');
+folder_fill.add(prop, 'clear_display_2');
+folder_fill.add(prop, 'reset');
+folder_fill.open();
+
+
+var folder_audio = gui.addFolder('audio');
+folder_audio.add(prop, 'getFrequency_type',prop.getFrequency_types); //! max
+folder_audio.add(prop, 'freq_dirModule',1,512).step(1);
+folder_audio.add(prop, 'freq_rangeMult',1,256).step(1);
+folder_audio.open();
+
+var f2 = gui.addFolder('colorize');
+f2.add(prop, 'op_per_frame',1,100000).step(1);//!! checkbox together
+f2.add(prop, 'sleep_d',1,200).step(2);
+f2.add(prop, 'iiAdd_each_op',0).step(1);
+f2.add(prop, 'colorize_i_add',0,1).step(0.01);
+f2.add(prop, 'colorize_i360t_add',0,0.01).step(0.00001);
+f2.add(prop, 'colorize', prop.colorize_type);
+
+f2.add(prop, 'display_range_for_data',1,256).step(1);
+f2.add(prop, 'save_canvas');
+f2.open();
+
+
+var folder_selected = gui.addFolder('ant selected');
+folder_selected.add(ant, 'selectNext');
+folder_selected.add(ant, 'Dir',0,4).step(0.01); //!! checkbox int
+folder_selected.add(ant, 'x',0,dataSize-1).step(1);
+folder_selected.add(ant, 'centerXY');
+folder_selected.add(prop, 'reset');
+folder_selected.open();
+
+
+}
+
+createGUI();
+prop.fill();
+prop.reset(); //!! after load preset
+
+function sleep(ms) { //!
+	ms += new Date().getTime();
+	while (new Date() < ms){}
+} 
+
+//------------------------- audio
+
+var bInit=false;
+function main()
+{
+let el=$('startMsg');el.parentNode.removeChild(el);
+
+context = new AudioContext();
+osc = context.createOscillator();
+g = context.createGain();
+osc.connect(g);
+g.connect(context.destination);
+osc.start(0);
+
+bInit=true;;
+run();
+document.body.onclick='';
+}
+
+
+//You may also create the AudioContext only when the user interacts with the page.
+/* !
+document.querySelector('button').addEventListener('click', function() {
+  var context = new AudioContext();
+  // Setup all nodes
+  ...
+});
+*/
+
+/*
+g.gain.exponentialRampToValueAtTime(
+  0.00001, context.currentTime + 1.04
+)
+*/
+
+visit_last=0;
+function setFrequency()
+{
+	var freq=0;
+	switch(prop.getFrequency_type)
+	{
+		case 'dir': freq=ant.dir; break;
+		case 'dataset': freq=dataset[ant.x][ant.y]; break; //by color
+		
+		case 'dist_x': freq=dataSize-ant.x; break; //|  +ant.y
+		case 'dist_center': //distance from center
+		{
+			//let a = ant.x - dataSizeCenter;
+			//let b = ant.y - dataSizeCenter;
+			//let d = Math.sqrt( a*a + b*b );
+			//||
+			freq =Math.hypot(ant.x-dataSizeCenter, ant.y-dataSizeCenter);
+		}
+		break;
+		case 'dist_smooth': //distance from smooth xy
+		{
+			freq =Math.hypot(ant.x-ant.xs, ant.y-ant.ys);
+		}
+		break;
+		case 'speed': //speed_measured
+		{
+			ant.speed_measured=Math.hypot(ant.x-ant.xt, ant.y-ant.yt);
+			ant.xt=ant.x;
+			ant.yt=ant.y;
+			freq =Math.hypot(ant.speed_measured-dataSizeCenter, ant.y-dataSizeCenter);
+		}
+		break;
+		case 'visit': //!! from datasetColor have to be set to visit
+		{
+			freq =datasetColor[ant.x][ant.y];
+		}
+		break;
+		case 'visit_dif': //!! from datasetColor have to be set to visit
+		{
+			visit=datasetColor[ant.x][ant.y];
+			freq =visit_last-visit;
+			visit_last=visit;
+		}
+		break;
+	}
+
+	osc.frequency.value=60+(freq%prop.freq_dirModule)*prop.freq_rangeMult; //%4   Math.sin(ant.dir)*256;   //by dir
+}
+//------------------------- 
+
+
+
+var bBanchmark=0;
+var bSetFrequencyNow=false;
+
+
+function run() {
+
+//if(bBanchmark==1)
+	//console.log(ant.dir);
+ 
+var t0=performance.now();
+
+
+for(i_ant=0;i_ant<ants.length;i_ant++)
+{
+ ant=ants[i_ant];
+
+if(prop.antType=='classic')
+{
+for (var i = 0; i < prop.op_per_frame; i++, ant.i_ant++) {
+{
+	switch(ant.dir)
+	{
+		case 0:
+		ant.x++;
+		break;
+		case 4: 
+		ant.dir=0;
+		ant.x++;
+		break;
+
+		case 1:
+		ant.y++;
+		break;
+
+		case 2:
+		ant.x--;
+		break;
+
+		case 3:
+		ant.y--;
+		break;
+		case -1:
+		ant.dir=3;
+		ant.y--;
+		break;
+	}
+   
+  if(ant.x>chartSize-1) ant.x=0;
+  else if(ant.x<0) ant.x=chartSize-1;
+  if(ant.y>chartSize-1) ant.y=0;
+  else if(ant.y<0) ant.y=chartSize-1;
+  
+
+	if(prop.op_per_frame<2) sleep(prop.sleep_d); //! update to both part or if(prop.bInt)
+
+ //prop.colorAdds0
+	//prop.color_max
+	if(dataset[ant.x][ant.y]==0)
+	{
+		dataset[ant.x][ant.y]=1;
+		ant.dir+=prop.dirAdds0;
+	}
+	else
+	if(dataset[ant.x][ant.y]==1)
+	{
+		dataset[ant.x][ant.y]=2;
+		ant.dir-=prop.dirAdds0;
+	}
+	else
+	if(dataset[ant.x][ant.y]==prop.color_max)
+	{
+		dataset[ant.x][ant.y]-=3;
+		ant.dir-=prop.dirAdds1;
+	}
+	else
+	{
+		dataset[ant.x][ant.y]=prop.color_max;
+		ant.dir+=prop.dirAdds1;
+	}
+	
+	set_datasetColor_by_Colorize();
+}
+}
+}
+else
+if(prop.antType==1)
+{
+for (var i = 0; i < prop.op_per_frame; i++, ant.i_ant++) {
+  switch(~~(ant.dir%4))
+  //switch(Math.floor(ant.dir))
+  {
+	case 0:
+	ant.x++; //!! float
+					//if(Math.abs(ant.dir)>1000) ant.dir%=4;
+	break;
+	/*
+	case 4: 
+	ant.dir-=4; //#  //0
+	ant.x++;
+	break;*/
+	
+	case 1:
+	ant.y++;
+	break;
+	
+	case 2:
+	ant.x--;
+	break;
+	
+	case 3:
+	ant.y--;
+	break;
+	
+	/*case -1:
+	ant.dir+=4;
+	ant.y--;
+	break;*/
+  }
+  if(ant.dir>=4 ||ant.dir<0) ant.dir%=4;
+ // ant.dir=Math.abs(ant.dir);
+ 
+  if(ant.x>chartSize-1) ant.x=0;
+  else if(ant.x<0) ant.x=chartSize-1;
+  if(ant.y>chartSize-1) ant.y=0;
+  else if(ant.y<0) ant.y=chartSize-1;
+
+  
+  if(fieldG[ant.x][ant.y]>ant.consumeG_can())
+  {
+	ant.consumeG(ant.consumeG_can());
+  }
+  else ant.consumeG(fieldG[ant.x][ant.y]);
+  
+  
+
+  if(dataset[ant.x][ant.y]<prop.color_max) 
+  {
+	dataset[ant.x][ant.y]+=prop.colorAdds0; //| /(1+Math.abs(ant.dir)) //	ant.dir%4	dataset[ant.x][ant.y]/256
+	ant.dir+=prop.dirAdds0;
+  }
+  else
+  {
+  
+	dataset[ant.x][ant.y]+=prop.colorAdds1; //| /(1+Math.abs(ant.dir))
+	ant.dir+=prop.dirAdds1;
+  }
+
+	set_datasetColor_by_Colorize();
+}
+}
+else
+if(prop.bInt)
+{
+for (var i = 0; i < prop.op_per_frame; i++,ant.i_ant++) {
+	switch(ant.dir)
+	{
+		case 0:
+		ant.x++;
+		break;
+		case 4: 
+		ant.dir=0;
+		ant.x++;
+		break;
+
+		case 1:
+		ant.y++;
+		break;
+
+		case 2:
+		ant.x--;
+		break;
+
+		case 3:
+		ant.y--;
+		break;
+		case -1:
+		ant.dir=3;
+		ant.y--;
+		break;
+	}
+   
+  if(ant.x>chartSize-1) ant.x=0;
+  else if(ant.x<0) ant.x=chartSize-1;
+  if(ant.y>chartSize-1) ant.y=0;
+  else if(ant.y<0) ant.y=chartSize-1;
+  
+
+	if(prop.op_per_frame<2) sleep(prop.sleep_d); //! update to both part or if(prop.bInt)
+
+	
+	if(dataset[ant.x][ant.y]<prop.color_max) 
+	{
+		//dataset[ant.x][ant.y]=ant.dir%4;
+		//dataset[ant.x][ant.y]++;
+		dataset[ant.x][ant.y]+=prop.colorAdds0; //	ant.dir%4	dataset[ant.x][ant.y]/256
+		ant.dir+=prop.dirAdds0;
+	}
+	else
+	{
+		dataset[ant.x][ant.y]+=prop.colorAdds1;
+		ant.dir+=prop.dirAdds1;
+	}
+	
+	set_datasetColor_by_Colorize();
+}
+}
+else
+{
+for (var i = 0; i < prop.op_per_frame; i++,ant.i_ant++) {
+	switch(~~(ant.dir%4))
+	//switch(Math.floor(ant.dir))
+	{
+		case 0:
+		ant.x++; //!! float
+
+						//if(Math.abs(ant.dir)>1000) ant.dir%=4;
+		break;
+		/*
+		case 4: 
+		ant.dir-=4; //#  //0
+		ant.x++;
+		break;*/
+
+
+		case 1:
+		ant.y++;
+		break;
+
+		case 2:
+		ant.x--;
+		break;
+
+		case 3:
+		ant.y--;
+		break;
+
+		/*case -1:
+		ant.dir+=4;
+		ant.y--;
+		break;*/
+	}
+	if(ant.dir>=4 ||ant.dir<0) ant.dir%=4;
+	// ant.dir=Math.abs(ant.dir);
+
+	if(ant.x>chartSize-1) ant.x=0;
+	else if(ant.x<0) ant.x=chartSize-1;
+	if(ant.y>chartSize-1) ant.y=0;
+	else if(ant.y<0) ant.y=chartSize-1;
+
+
+
+	if(dataset[ant.x][ant.y]<prop.color_max) 
+	{
+		//dataset[ant.x][ant.y]=ant.dir%4;
+		//dataset[ant.x][ant.y]++;
+		dataset[ant.x][ant.y]+=prop.colorAdds0; //| /(1+Math.abs(ant.dir)) //	ant.dir%4	dataset[ant.x][ant.y]/256
+		ant.dir+=prop.dirAdds0;
+	}
+	else
+	{
+		dataset[ant.x][ant.y]+=prop.colorAdds1; //| /(1+Math.abs(ant.dir))
+		ant.dir+=prop.dirAdds1;
+	}
+  
+	set_datasetColor_by_Colorize();
+} //100000
+
+} //ant type
+
+
+	if(ant_selected_i==i_ant)
+	{
+		smoothMoveZoom()
+		function smoothMoveZoom() //!! on draw only
+		{
+		  ant.xs=ant.xs*0.9+ant.x*0.1;
+		  ant.ys=ant.ys*0.9+ant.y*0.1;
+		}
+	}
+}
+  
+	document.getElementById("timer").innerHTML =performance.now()-t0;
+	//document.getElementById("dir").innerHTML =ant.dir;
+	document.getElementById("i_ant").innerHTML =ant.i_ant;
+	document.getElementById("speed_measured").innerHTML =ant.speed_measured; //!! sooth XY
+
+
+	prop.colorize_i360t+=prop.colorize_i360t_add/10;
+	if(prop.colorize_i360t>360)prop.colorize_i360t-=360;
+
+	
+	t0=performance.now();
+	for (var y = 0; y < canvasHeight; ++y) {
+		for (var x = 0; x < canvasWidth; ++x) {
+			var value = dataset[y][x]*prop.display_range_for_data; //#122
+			data[y * canvasWidth + x] = HtoRGB32(value);
+
+			var valueC = (datasetColor[y][x]); //!!+  // +prop.colorize_i    //*prop.colorize_i360 for night curtain //*prop.display_range_for_data;
+			dataC[y * canvasWidth + x] = HtoRGB32(valueC*prop.colorize_i360t); 		//document.getElementById("dbgHTM").innerHTML =valueC;
+		}
+	}
+	//ctx.scale(4, 4);
+	imageData.data.set(buf8);    ctx.putImageData(imageData, 0, 0);
+	
+	imageDataC.data.set(buf8C);  ctxC.putImageData(imageDataC, 0, 0);
+	
+	for (var y = 0; y < 128; ++y) {
+        for (var x = 0; x < 128; ++x) {
+			//dataZ[x * 128 + y] = data[~~((ant.y-128/2+y)*2) * canvasWidth + ~~((ant.x-128/2+x)*2)];
+			dataZ[y * 128 + x] = data[~~((ant.xs+(y-128/2)/2)) * canvasWidth + ~~((ant.ys+(x-128/2)/2))];
+		}
+		}
+	imageDataZ.data.set(buf8Z);  ctxZ.putImageData(imageDataZ, 0, 0);
+	
+	
+	document.getElementById("timerDraw").innerHTML =performance.now()-t0;
+	
+  requestAnimationFrame(run);
+}
+document.body.onclick=main;	
+</script>
+</body>
+</html>

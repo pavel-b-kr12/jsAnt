@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<!-- naming of ant.js : 
+'*snd*' - contain sound synth, mark blue in list. 
+'*_.js'- best, mark yellow. -->
+<head>
+	<meta charset="utf-8">
+	<title>ants gallery</title>
+	<script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+	<script src="../common.js"></script> 
+	<script src="../initGf.js"></script>
+	<style type="text/css">
+.markY{background-color: #f4ff00;}
+.txWB{color: #4046ff;}
+	</style>
+</head>
+<body>
+ms <b id="timer"></b><br> 
+ant from file: <a id='loadedFile'></a><br> 
+
+<canvas id='canvas' class='viewport' width='1000' height='1000' style="z-order:-1"></canvas>
+<canvas id='canvasC' class='viewport' width='1000' height='1000' style="z-order:-1"></canvas>
+<div id='btnsContainer' style="position:absolute;z-order:9; left:10px;top:120px"></div>
+
+<script type="text/javascript">
+	var chartSize = 1000;
+	var dataSize = 1000;
+	var ww=chartSize;
+	var hh=chartSize;
+	var dataset = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return ~~(Math.random()*255);});});
+	var ant_func=function(){}
+
+function initBuffers(){
+	canvas = $('canvas');
+	canvas.width=ww;
+	canvas.height=hh;
+
+	canvasWidth  = canvas.width;
+	canvasHeight = canvas.height;
+	ch=canvasHeight //!ph = canvasHeight; ph = Math.Min(fieldh,ph)
+	cw=canvasWidth
+										//ctx.scale(2,2);
+	ctx = canvas.getContext('2d', /*, { alpha: false }*/);
+	imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+
+	buf = new ArrayBuffer(imageData.data.length);
+	buf8 = new Uint8ClampedArray(buf);
+	data = new Uint32Array(buf);
+
+	canvasC = $('canvasC');
+	canvasC.width=ww; //TODO resize output for not selected viewport
+	canvasC.height=hh;
+
+										//ctx.scale(2,2);
+	ctxC = canvasC.getContext('2d');
+	imageDataC = ctxC.getImageData(0, 0, canvasWidth, canvasHeight);
+
+	bufC = new ArrayBuffer(imageDataC.data.length);
+	buf8C = new Uint8ClampedArray(bufC);
+	dataC = new Uint32Array(bufC);
+} initBuffers();
+	
+var  ant;
+function initAnt()
+{
+	ww=chartSize;
+	hh=chartSize;
+	
+	initBuffers();
+
+	ant = {
+		dir : 0,
+		x : ww/2, 
+		y: hh/2
+	}
+}
+
+var ii;
+var dt=0;//0 is requestAnimationFrame, otherwise - setTimeout. This is for audio gen
+var opsFerFrame=10000;
+var context;
+var osc
+function iniAudio(){
+	if(context===undefined)
+	{
+		context = new AudioContext();
+		osc = context.createOscillator();
+		gainNode = context.createGain();
+		osc.connect(gainNode);
+		gainNode.connect(context.destination);
+		osc.start(0);
+		osc.bStarted=true;
+	}
+	else sw_audio(true)
+}
+function sw_audio(bOn)
+{
+	if(!(context!== undefined)) return; // !(variable is declared and is not undefined)
+
+		if(bOn)
+		{
+			//osc.start(now);
+			osc.connect(context.destination); 
+			osc.bStarted=true
+		}
+		else
+		{
+			//osc.stop(now);
+			osc.disconnect();
+			osc.bStarted=false
+		}
+}
+
+function fillInit( x,  y)
+{
+ switch(fill_type) //+ cast to int
+ {
+  case 0: return 0;
+  case 1: return x%2*255;
+  case 2: return (x%2|y%2)*255;
+  case 3: return ~~(Math.random()*255); // Math.random == [0, 1) //?? 256  //~~ == Math.floor двойного побитового отрицания
+  case 4: return x%255;
+ }
+ return 0;
+}
+function fillInit2()
+{
+for(var xx=0; xx<dataSize; xx++)
+{
+for(var yy=0; yy<dataSize; yy++)
+{
+	var ret=0;
+	 switch(fill_type) //+ cast to int
+	 {
+	  case 0: ret= 0; break;
+	  case 1: ret= xx%2*255; break;
+	  
+	  case 2: ret= xx%2*127+yy%2 *127 ;  break;//((~~(d%2))^(~~((d/dataSize)%2)))*255; //(~~(x%2))^(~~(y%2))*255;
+	  case 3: ret= ((~~(xx%2))^(~~(yy%2)) )*255 ;  break;
+	   
+	  case 22: ret= ~~(Math.random()*255);  break;// Math.random == [0, 1) //?? 256  //~~ == Math.floor двойного побитового отрицания
+	  case 23: ret= xx%255; break;
+	  
+	  
+	 }
+	dataset[xx][yy]=ret;
+}
+}
+}
+function fillInit3()
+{
+for(var xx=0; xx<dataSize; xx++)
+{
+for(var yy=0; yy<dataSize; yy++)
+{
+	var ret=0;
+	 switch(fill_type) //+ cast to int
+	 {
+	  case 0: ret= 0; break;
+	  case 1: ret= xx%2*255; break;
+	  
+	  case 2: ret= ((~~(xx%2))^(~~(yy%2)) )*255 ;  break;
+	  case 3: ret= xx%2*127+yy%2 *127 ;  break;//((~~(d%2))^(~~((d/dataSize)%2)))*255; //(~~(x%2))^(~~(y%2))*255;
+	  
+	   
+	  case 22: ret= ~~(Math.random()*255);  break;// Math.random == [0, 1) //?? 256  //~~ == Math.floor двойного побитового отрицания
+	  case 23: ret= xx%255; break;
+	  
+	  
+	 }
+	dataset[xx][yy]=ret;
+}
+}
+}
+
+dataset = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return ~~(0);});}); //i%2*255
+bStopLoop=false;
+function run() {
+	var t0=performance.now();
+	ant_func();
+	document.getElementById("timer").innerHTML =(performance.now()-t0).toFixed(2);
+
+
+	colorize();
+
+	imageData.data.set(buf8);
+
+	ctx.putImageData(imageData, 0, 0);
+
+	imageDataC.data.set(buf8C);
+	ctxC.putImageData(imageDataC, 0, 0);
+
+	if(bStopLoop) return;
+	if(dt>0) setTimeout(run, dt);
+	else	requestAnimationFrame(run);
+}
+
+
+</script>
+
+<script type="text/javascript">
+function loadjs_(nm) { //wait loop end. If loop via timeout
+	//------------ fallback to default, can be override in loaded scipt
+	colorize=colorize0;
+	chartSize = 1000;
+	dataSize = 1000;
+
+	dt=0; //0 for requestAnimationFrame
+	initAnt();
+	//------------
+	sw_audio(false);
+		
+	let script = document.createElement('script');
+	script.nm=nm;
+	script.onload = function () {
+		
+		if(chartSize<canvas.width)
+		{
+
+		}
+		bStopLoop=false;
+		run();
+	};
+	script.src = nm;
+	loadedFile_el=$('loadedFile');
+	loadedFile_el.href=nm;// console.log('loaded '+script.src);
+	loadedFile_el.innerText=nm;
+	document.head.appendChild(script);
+	}
+	
+function loadJS(nm)
+{
+bStopLoop=true;
+setTimeout(loadjs_,dt==0?50:300,nm);
+}
+
+ff_nm_str=[
+"a_0.2cardioid.js",
+"a_0.3canvFst.js",
+"a_00.1.js",
+"a_00.js",
+"a_00a.js",
+"a_01.js",
+"a_01Fst.js",
+"a_02.0.js",
+"a_03.1.js",
+"a_03.3f.js",
+"a_03.4.js",
+"a_03.5.js",
+"a_06.js",
+"a_06_long_trace.js",
+"a_07.js",
+"a_08.1.js",
+"a_08.2.js",
+"a_08.3.js",
+"a_08.js",
+"a_12.js",
+"a_13.js",
+"a_14.10_snd.js",
+"a_14.14_snd.js",
+"a_14.1_.js",
+"a_14.2.js",
+"a_14.20_snd.js",
+"a_14.21_snd.js",
+"a_14.24_snd.js",
+"a_14.3.js",
+"a_14.7.js",
+"a_14.8.js",
+"a_14.9_.js",
+"a_14.js",
+"a_14c.js",
+"a_14c1.js",
+"a_14cr.js",
+"a_14cr81.js",
+"a_14cr82.js",
+"a_14cr85.js",
+"a_14cr9.js",
+"a_14cr91.js",
+"a_14cr92.js",
+"a_201snd.js",
+"a_201snd_morse.js",
+"a_201snd_signals.js",
+"a_201snd_signalsA_.js",
+"a_202snd.js",
+"a_203snd.js",
+"a_204snd.js",
+"a_206snd.js",
+"a_207snd.js",
+"a_208snd.js",
+"a_209.1snd.js",
+"a_209.2snd.js",
+"a_209snd.js",
+"a_210snd.js",
+"a_211snd.js",
+"a_212snd diz shots.js",
+"a_213snd.js",
+"a_214snd_.js",
+"a_215snd.js",
+"a_216snd.js",
+"a_217snd.js",
+"a_218snd.js",
+"a_219snd.js",
+"a_220snd.js",
+"a_230snd.js",
+]; //for(i=0;i<ff_nm_str.length;i++){ff_nm_str[i]=ff_nm_str[i].match(/.*\\(.*?\.js)/i)[1];}
+
+btnsContainer = $('btnsContainer');
+let str='';
+for(let i=0;i<ff_nm_str.length;i++) {
+
+ str+='<button  id="btn_'+ff_nm_str[i]+'" onclick="loadJS(\''+ff_nm_str[i]+'\');">'+ff_nm_str[i]+'</button><br>'
+ //document.createElement('input');
+}
+
+//  wrapper.appendChild(label);
+btnsContainer.innerHTML+=str
+
+for(let i=0;i<ff_nm_str.length;i++) {
+ if(ff_nm_str[i]!=null && typeof ff_nm_str[i]=== 'string')
+ {
+ 
+  if(ff_nm_str[i].includes('_.js')) $('btn_'+ff_nm_str[i]).classList.add('markY');
+  if(ff_nm_str[i].includes('snd')) $('btn_'+ff_nm_str[i]).classList.add('txWB');
+ }
+}
+
+
+//console.log(ff_nm_str)
+</script>
+<br>
+
+</body>
+</html>

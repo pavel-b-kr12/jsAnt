@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+<style>
+body {margin: 0px;overflow:hidden}
+</style>
+   
+<script>
+function $(s) {return document.getElementById(s);}
+function rand() {return Math.random()}
+function $tx(s,t){$(s).innerText=t}
+function sleep(ms) {
+   var currentTime = new Date().getTime();
+
+   while (currentTime + ms >= new Date().getTime()) {
+   }
+}
+
+var canvas;
+var ctx; // context without alpha channel.
+var idata; // create image data
+var buffer32;  // get 32-bit view
+
+window.onload=main;
+function main()
+{
+canvas=$('canvas');
+
+	ctx = canvas.getContext("2d", {alpha: false});
+	imageData =ctx.createImageData(canvas.width, canvas.height);
+	buffer32= new Uint32Array(imageData.data.buffer);
+
+ loop();
+}
+
+    var chartSize = 512;
+    var dataSize = 512;
+	var dataSizeCenter=dataSize/2;
+	var xM=dataSize-1;
+	var yM=dataSize-1;
+
+	var field = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});//return ~~(i%2*255); //d3 way became to faster working aray 10-15%. Opera>>Chromium>>FF
+
+
+var     ant = {
+        dir : 0,
+
+        x : dataSizeCenter, 
+        y: dataSizeCenter,
+			
+			centerXY: function ()
+			{
+			 this.x=~~dataSizeCenter;
+			 this.y=~~dataSizeCenter;
+			},
+				
+			xt:0,	//prev pos
+			yt:0,
+			speed:0
+		}
+	
+
+var bStop=false;
+var il=0;
+var speed=200;
+function loop() {
+
+
+for (var i = 0; i < speed; i++) {
+  if(field[ant.x][ant.y]==0) 
+  {
+	field[ant.x][ant.y]=255;
+	ant.dir++;
+  }
+  else
+  {
+	field[ant.x][ant.y]=0;
+	ant.dir--;
+  }
+  
+  switch(ant.dir)
+  {
+        case 4:	ant.dir=0;
+	case 0:	ant.x++;	break;
+	
+	case 1:	ant.y++;	break;
+	
+	case 2:	ant.x--;	break;
+	
+	
+        case -1:	ant.dir=3;
+	case 3:	ant.y--;	break;
+
+  }
+ 
+  if(ant.x>xM) ant.x=0;
+  else if(ant.x<0) ant.x=xM;
+  
+  if(ant.y>yM) ant.y=0;
+  else if(ant.y<0) ant.y=yM;
+}
+
+
+	for(var y=0, n=0;y<chartSize;y++)	{
+	for(var x=0;x<chartSize;x++,n++)	{
+		value=field[x][y];
+            buffer32[n] =  (255   << 24) |value//*255; // buffer32[y * chartSize + x]
+			/*
+                (255   << 24) |    // alpha
+
+                (value/2 << 16) |    // blue
+                (value <<  8) |    // green
+                255;            // red
+				*/
+        }
+    }
+
+    //v1: imageData.data.set(buf8);
+    ctx.putImageData(imageData, 0, 0);
+
+	il++;
+	if(!bStop)
+	requestAnimationFrame(loop)
+	
+if(il>405){ speed=10; return;}
+if(il>200) {speed=1000; return;}
+if(il>60){speed=20; return;}
+}
+</script>
+</head>
+<body>
+<canvas id='canvas' width=512 height=512></canvas>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<html>
+  <head>
+  <meta charset="utf-8">
+    <script type="text/javascript" src="lib/d3.v5.min.js"></script>
+    <script src="lib/p5.min.js"></script><!-- https://github.com/processing/p5.js/wiki/Embedding-p5.js -->
+	<style>
+	.pa {color: red;}
+	. viewport {position: absolute;}
+	</style>
+	<script src="ant.js"></script>
+	<script src="common.js"></script>
+	<script>
+
+function setup() {
+  createCanvas(dataSize, dataSize);
+}
+
+var dt_avg=10;
+var bStop=false;
+var il=0;
+function draw() {
+if(bStop) return;
+	var t0=window.performance.now();
+		
+	for (let i = 0; i < speed; i++) { //100000000 =10M=1s on opera2020  //310+35ms separate field arr
+	 ant.run();
+	 //bStop=true; //single step mode press btn //sleep(500)
+	}
+  //background(220);  
+
+loadPixels();
+//let d = pixelDensity(); //https://p5js.org/reference/#/p5/pixels
+
+	switch(showArr)
+	{
+		case 'f':
+		for(let y=0, n=0;y<chartSize;y++){
+		for(let x=0;x<chartSize;x++,n+=4) {
+			let value = field[x*hh+y];
+			if(value==0&&pixels[n]==0) continue; //skip unused
+			//if(value!=0&& pixels[n]!=0) continue;
+			//buffer32[n] =  value<<8   //(255   << 24) |value<<8
+			pixels[n] = value;
+			pixels[n + 1] = value;
+			pixels[n + 2] = 0;
+			pixels[n + 3] = 255;
+
+		}
+		}
+		break;
+		case 'h':
+		for(var y=0, n=0;y<chartSize;y++){
+		for(var x=0;x<chartSize;x++,n+=4) {
+			var value = arrHist[x][y]
+			if(value==0&&pixels[n]==0) continue; //skip unused
+			value=hToRgb(value+il);
+
+			pixels[n] = value[0];
+			pixels[n + 1] = value[1];
+			pixels[n + 2] = value[2];
+			pixels[n + 3] = 255;
+		}
+		}
+		break;
+		case 'v':
+		for(var y=0, n=0;y<chartSize;y++){
+		for(var x=0;x<chartSize;x++,n+=4) {
+			var value = arrVisits[x][y]
+			if(value==0&&pixels[n]==0) continue; //skip unused
+			//if(value!=0&& buffer32[n]==0) continue;
+			value =hToRgb(value);//+il
+			
+			pixels[n] = value[0];
+			pixels[n + 1] = value[1];
+			pixels[n + 2] = value[2];
+			pixels[n + 3] = 255;
+		}
+		}
+		break;
+	}
+
+	dt_avg=window.performance.now()-t0; $('t').innerText=dt_avg;
+	il++;
+	
+	updatePixels();
+}
+
+
+function hide_sw(id){
+  x=$('id')
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+// $('canvas').classList.toggle('hidden')
+}
+
+var showArr='f';
+function show_field(){ showArr='f';
+}
+function show_hist(){ showArr='h';
+}
+function show_visits(){ showArr='v';
+}
+var speed=100;
+function sliderSpeed_change(v){
+	speed=Math.pow(v,3);
+    $tx("sliderSpeed_txt",speed);
+}
+	</script>
+  </head>
+  <body>
+    <main>
+    </main>
+ms <i id='t'></i><br>
+<button id='stop_sw'  onclick="bStop=!bStop; $tx('stop_sw',bStop?'start':'stop'); if(!bStop)loop();">stop</button> 
+<button id='btn_show_field'  onclick="show_field()">show_field</button> 
+<button id='btn_show_hist'  onclick="show_hist()">show_hist</button> 
+<button id='btn_show_visits'  onclick="show_visits()">show_visits</button> <br>
+
+<input id='sliderSpeed' type="range" min="1" max="100" value="10" oninput="sliderSpeed_change(this.value)"> <i id='sliderSpeed_txt'>speed</i><br>
+
+<script>
+document.body.onkeyup = function(e){
+if(e.keyCode == 32){$('stop_sw').click()}
+else{
+ $('btn_show_field').click()
+}
+}
+document.body.onkeydown  = function(e){
+if(e.key == 'h'){$('btn_show_hist').click()} //ctrl //codes https://stackoverflow.com/questions/3781142/jquery-or-javascript-how-determine-if-shift-key-being-pressed-while-clicking-an
+else
+if(e.key == 'v'){$('btn_show_visits').click()} //shift
+else
+showArr='f';
+}
+</script>
+  </body>
+</html>

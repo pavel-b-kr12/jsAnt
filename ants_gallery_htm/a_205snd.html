@@ -1,0 +1,138 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+	<script src="../common.js"></script>
+	<script src="../initGf.js"></script>
+    <style type="text/css">
+
+    </style>
+</head>
+<body>
+ms<p id="timer"></span> 
+<script type="text/javascript">
+
+
+
+
+    var chartSize = 500;
+    var dataSize = 500;
+
+    var dataset = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return ~~(Math.random()*255);});});
+    var datasetColor = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return ~~(Math.random()*255);});});
+var dataSizeCenter=dataSize/2; initGf();
+
+
+dataset = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return ~~(i%2*255);});}); //i%2 //i%2*255
+
+setTimeout(function run() {
+var t0=performance.now();
+for (var i = 0,ic=0; i < 10000; i++,ic++) { //100000000
+
+//if(i%222222==0)
+if(ic==1000)
+{
+ic=0;
+ii++; //if(ii>255) ii=0;
+
+ osc.frequency.value=80+ant.dir*256;
+}
+
+
+
+
+  if(dataset[ant.x][ant.y]<255) 
+  {
+	dataset[ant.x][ant.y]++;
+               datasetColor[ant.x][ant.y]=ii;
+	ant.dir-=0.02;
+  }
+  else
+
+ /* if(dataset[ant.x][ant.y]==122) 
+  {
+	dataset[ant.x][ant.y]=255;
+	ant.dir-=0.13;
+  }
+
+else*/
+
+  {
+  
+	dataset[ant.x][ant.y]=0;
+             	datasetColor[ant.x][ant.y]=0;
+	ant.dir-=.9;
+  }
+  
+  //switch(Math.floor(ant.dir))
+  switch(Math.floor(ant.dir))
+  {
+
+	case 0:
+	ant.x++;
+	break;
+		case 4: 
+		ant.dir=0; //# -=4 //0
+	ant.x++;
+	break;
+	
+	
+	case 1:
+	ant.y++;
+	break;
+	
+	case 2:
+	ant.x--;
+	break;
+	
+	
+	case 3:
+	ant.y--;
+	break;
+	  	case -1:
+	ant.dir=3;
+	ant.y--;
+	break;
+	
+
+  
+  }
+ 
+  if(ant.x>chartSize-1) ant.x=0;
+  else if(ant.x<0) ant.x=chartSize-1;
+  
+    if(ant.y>chartSize-1) ant.y=0;
+  else if(ant.y<0) ant.y=chartSize-1;
+
+  
+}
+document.getElementById("timer").innerHTML =performance.now()-t0;
+	
+
+	
+
+colorizeC_li();
+
+    imageData.data.set(buf8);
+    ctx.putImageData(imageData, 0, 0);
+	
+	imageDataC.data.set(buf8C);
+    ctxC.putImageData(imageDataC, 0, 0);
+	
+	
+  setTimeout(run, 1);
+}, 100);
+
+
+
+	
+
+	//		
+    
+</script>
+</body>
+</html>

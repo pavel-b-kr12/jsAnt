@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+    <script type="text/javascript" src="../lib/dat.gui.min.js"></script>
+    <style type="text/css">    </style>
+</head>
+<body>
+<canvas id='canvas' width=400 height=400></canvas>
+<canvas id='canvasC' width=400 height=400></canvas>
+ms<p id="timer"></span> 
+<script type="text/javascript">
+function $(s) {return document.getElementById(s);}
+function rand() {return Math.random()}
+function $tx(s,t){$(s).innerText=t}
+
+//https://d3js.org/	https://metanit.com/web/d3js/2.5.php
+
+//http://bl.ocks.org/biovisualize/5400576
+    // Following this idea: https://hacks.mozilla.org/2011/12/faster-canvas-pixel-manipulation-with-typed-arrays/
+    var chartSize = 400;
+    var dataSize = 400;
+
+//-------1st
+canvas=$('canvas');
+
+
+	ctx = canvas.getContext("2d", {alpha: false});
+	imageData =ctx.createImageData(canvas.width, canvas.height);
+	buffer32= new Uint32Array(imageData.data.buffer);
+
+    var canvasWidth  = canvas.width;
+    var canvasHeight = canvas.height;
+											//ctx.scale(2,2);
+    var ctx = canvas.getContext('2d');
+    var imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+
+    var buf = new ArrayBuffer(imageData.data.length);
+    var buf8 = new Uint8ClampedArray(buf);
+    var data = new Uint32Array(buf);
+//---------2nd
+
+canvasC=$('canvasC');
+											//ctx.scale(2,2);
+    var ctxC = canvasC.getContext('2d');
+    var imageDataC = ctxC.getImageData(0, 0, canvasWidth, canvasHeight);
+
+    var bufC = new ArrayBuffer(imageDataC.data.length);
+    var buf8C = new Uint8ClampedArray(bufC);
+    var dataC = new Uint32Array(bufC);
+//--------
+var     ant = {
+        dir : 0,
+        x : chartSize/2, 
+        y: chartSize/2
+		}
+
+	
+
+
+//http://marcgg.com/blog/2016/11/01/javascript-audio/
+var context = new AudioContext();
+var osc = context.createOscillator();
+var  g = context.createGain();
+osc.connect(g);
+g.connect(context.destination);
+osc.start(0);
+/*
+g.gain.exponentialRampToValueAtTime(
+  0.00001, context.currentTime + 1.04
+)
+*/
+
+var prop={
+ Antcolors : {},
+ colorAdds : [1, -1],
+ colorAdds0 : 0,
+get  colorAdds0() { return this.colorAdds[0]; },
+set  colorAdds0(val) { this.colorAdds[0]=val; },
+
+ colorAdds1 : 0,
+get  colorAdds1() { return this.colorAdds[1]; },
+set  colorAdds1(val) { this.colorAdds[1]=val; },
+
+
+
+ op_per_frame : 10,
+ iiAdd_each_op : 1, //e.g. for increment color by time left
+ ii : 0,
+ ii_counter : 0,
+
+ fill_type : 2,
+ 
+ fill: function ()
+	 {
+	 for(var xx=0; xx<dataSize; xx++)
+	{
+	for(var yy=0; yy<dataSize; yy++)
+	{
+		var ret=0;
+		 switch(prop.fill_type) //+ cast to int
+		 {
+		  case 0: ret= 0; break;
+		  case 1: ret= xx%2*255; break;
+		  
+		  case 2: ret= ((~~(xx%2))^(~~(yy%2)) )*255 ;  break;
+		  case 3: ret= xx%2*127+yy%2 *127 ;  break;//((~~(d%2))^(~~((d/dataSize)%2)))*255; //(~~(x%2))^(~~(y%2))*255;
+		  
+		   
+		  case 4: ret= ~~(Math.random()*255);  break;// Math.random == [0, 1) //?? 256  
+		  //~~ == Math.floor двойного побитового отрицания https://medium.com/@frontman/integer-%D0%B8-float-%D0%B2-javascript-9ca16ba1484f
+		  case 5: ret= xx%255; break;
+		 }
+		dataset[xx][yy]=ret;
+	}
+	}
+	}
+}
+
+
+
+var datasetColor = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+var dataset = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});
+
+prop.fill();
+
+/*!!! sample
+var formula = "2*x^3+3*x+6";
+var expression = Parser.parse(formula);
+var result = expression.evaluate({ x: 3 });
+||
+var n = eval("2*Math.pow(x,3)+3*x+6")
+*/
+
+
+
+
+
+var gui = new dat.GUI();
+
+var f1 = gui.addFolder('Flow Field');
+f1.add(prop, 'colorAdds0',-4.0,4.0).step(0.002); //!! checkbox int
+f1.add(prop, 'colorAdds1',-4.0,4.0).step(0.002);
+f1.add(prop, 'fill');
+
+f1.open();
+
+var f2 = gui.addFolder('Letters');
+f2.add(prop, 'op_per_frame',1,1000000).step(10);//!! checkbox together
+f2.add(prop, 'iiAdd_each_op',0).step(1);
+f2.add(prop, 'fill_type',0,5).step(1);
+
+f2.open();
+
+
+
+setTimeout(function run() { //https://learn.javascript.ru/settimeout-setinterval
+
+ 
+var t0=performance.now();
+for (var i = 0; i < prop.op_per_frame; i++,prop.ii_counter++) { //100000000
+
+	if(prop.ii_counter>prop.iiAdd_each_op)
+	{
+		prop.ii_counter=0;
+		prop.ii++; 
+		//if(ii>255) ii=0;
+
+		osc.frequency.value=80+(ant.dir%4)*256; //%4   Math.sin(ant.dir)*256;
+	}
+
+
+  if(dataset[ant.x][ant.y]<224) 
+  {
+	dataset[ant.x][ant.y]++;
+               datasetColor[ant.x][ant.y]=prop.ii;
+	ant.dir+=prop.colorAdds[0];
+  }
+  else
+
+ /* if(dataset[ant.x][ant.y]==122) 
+  {
+	dataset[ant.x][ant.y]=255;
+	ant.dir-=0.13;
+  }
+
+else*/
+
+  {
+  
+	dataset[ant.x][ant.y]=0;
+             	datasetColor[ant.x][ant.y]=0;
+	ant.dir+=prop.colorAdds[1];
+  }
+  
+  switch(Math.floor(ant.dir%4))
+  //switch(Math.floor(ant.dir))
+  //switch(Math.floor(ant.dir))
+  {
+
+	case 0:
+	ant.x++;
+	break;
+	/*
+	case 4: 
+	ant.dir-=4; //#  //0
+	ant.x++;
+	break;*/
+	
+	
+	case 1:
+	ant.y++;
+	break;
+	
+	case 2:
+	ant.x--;
+	break;
+	
+	
+	case 3:
+	ant.y--;
+	break;
+	
+	/*case -1:
+	ant.dir+=4;
+	ant.y--;
+	break;*/
+  }
+ 
+  if(ant.x>chartSize-1) ant.x=0;
+  else if(ant.x<0) ant.x=chartSize-1;
+  
+  if(ant.y>chartSize-1) ant.y=0;
+  else if(ant.y<0) ant.y=chartSize-1;
+
+  
+}
+document.getElementById("timer").innerHTML =performance.now()-t0;
+	
+
+	
+
+	for (var y = 0; y < canvasHeight; ++y) {
+        for (var x = 0; x < canvasWidth; ++x) {
+            var value = dataset[y][x];
+
+			data[y * canvasWidth + x] =
+			//(255   << 24) |value*155;
+			  (255   << 24) |    // alpha
+			    ((value+188)%256 << 16) |    // blue
+                ((value+88)%256 <<  8) |    // green
+                value%256;            // red
+				
+
+			 var valueC = datasetColor[y][x];
+            dataC[y * canvasWidth + x] =
+			//(255   << 24) |valueC*155;
+			
+                (255   << 24) |    // alpha
+				((valueC+188)%256 << 16) |    // blue
+                ((valueC+88)%256 <<  8) |    // green
+                valueC%256;            // red
+				
+        }
+    }
+
+    imageData.data.set(buf8);
+    ctx.putImageData(imageData, 0, 0);
+	
+	imageDataC.data.set(buf8C);
+    ctxC.putImageData(imageDataC, 0, 0);
+	
+	
+  setTimeout(run, 1);
+}, 100);
+
+   
+</script>
+</body>
+</html>

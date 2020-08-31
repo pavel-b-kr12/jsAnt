@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title></title>
+	<script type="text/javascript" src="lib/d3.v5.min.js"></script>
+	<script src="lib/webgl-utils.js"></script>
+	<script src="ant.js"></script>
+	<script src="common.js"></script> 
+	
+	<style>
+	.pa {color: red;}
+	.viewport {position: absolute;}
+	.abs {position: absolute; }
+	.shortcut{
+		text-decoration: underline; 
+		background-color: #ffeecc;
+		text-transform: capitalize;
+	}
+	.horContainer { display: flex;}
+	#inf{width: 280px;}
+	fieldset {
+		background-color: #eeeeee;
+	}
+
+	legend {
+	  background-color: #bdbcbc;
+
+	/*color: white;*/
+	/*border: aqua; 7efcff;*/
+	/* border-width: 1px;*/
+	/* border-style: solid;*/
+
+	padding-inline-start: 0px;
+	padding-inline-end: 0px;
+	}
+
+	.label
+	{
+		padding: 6px 14px;
+	}
+	.r
+	{
+		float: right;
+	}
+	</style>
+	<style>
+.w3-black, .w3-hover-black:hover {
+	color: #fff!important;
+	background-color: #515151/*#7b6d6d!important;*/
+}
+.w3-bar {
+	width: 100%;
+	overflow: hidden;
+}
+.w3-bar .w3-button {
+	white-space: normal;
+}
+
+.w3-bar .w3-bar-item {
+	padding: 3px 14px;
+	float: left;
+	width: auto;
+	border: none;
+	display: block;
+	outline: 0;
+}
+
+.w3-btn {
+	border: none;
+	display: inline-block;
+	padding: 6px 14px;
+	vertical-align: middle;
+	overflow: hidden;
+	text-decoration: none;
+	color: inherit;
+	background-color: inherit;
+	text-align: center;
+	cursor: pointer;
+	white-space: nowrap;
+	box-shadow:0 5px 10px 0 rgba(0,0,0,0.2),0 4px 12px 0 rgba(0,0,0,0.19);
+}
+
+.w3-btn:hover {
+  background-color: #cccccc!important;
+  color: #333!important;
+  border: none;
+}
+
+.w3-btn:active {
+  background-color: #aaaaaa!important;
+  color: #050!important;
+  box-shadow: none;
+  border: none;
+}
+	</style>
+	
+</head>
+<body>
+
+<div class="horContainer">
+<div class="hor" id='inf'>
+ms walk+draw<br><i id="dtAnt"></i> + <i id="dtDraw"></i> <br>
+dirAbs <i id='dirAbs'></i><br>
+step <i id='step_i'></i><br>
+rot speed <i id='rotSpeed'></i><br>
+antrotSpeed <i id='antrotSpeed'></i><br>
+frame_i <i id='il'></i><br>
+dH/dStep <i id='dHdStep'></i><br>
+dH/dFrame_i <i id='dHdFrame_i'></i><br>
+AudioFreq of selected <i id='AudioFreq'></i><br>
+<button onclick="sw_AllowAudio()" title='or click canvas'><b class=shortcut>A</b>udio</button> 
+</div>
+
+
+<div class="hor">
+<button id='stop_sw'  onclick="swStartStop()">start<p class='pa'>To start Click! or press ` 1....9 (speed)</p></button> <!--TODO dont start audio if stopped manually -->
+<br>
+To view arrays of fieds press keyboard:<br>
+<button id='btn_show_field' onclick="showArr='field'">show <b class=shortcut>F</b>ield</button> 
+<button id='btn_show_hist'  onclick="showArr='arrHist'">show <b class=shortcut>H</b>ist</button> 
+<button id='btn_show_visits' onclick="showArr='arrVisits'" title='v key'>show <b class=shortcut>V</b>isits</button> 
+<button class='shrtcutBtn' title='d'>arrDir_last</button> 
+<button class='shrtcutBtn' title='e'>arrHistDir_E</button> 
+<button class='shrtcutBtn' title='r'>arrHistDirAbs</button> 
+<button class='shrtcutBtn' title='s'>arrHist_rotSpeed</button> 
+<br>
+<input id='sliderSpeed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('sliderSpeed_txt',speed);"> <i id='sliderSpeed_txt'>sim </i> speed ops/Frame<br><!-- TODO2 negative speed -->
+<input id='sliderAudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value;$tx('sliderAudioFreqMul_txt',AudioFreqMul);"> <i id='sliderAudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
+<input id='slider_timestamp_incr' type="range" min="1" max="100" value="1" oninput="timestamp_incr=Math.pow(value*0.001,2); $tx('slider_timestamp_incr_txt', timestamp_incr.toFixed(6))"> <i id='slider_timestamp_incr_txt'></i> timestamp_incr<br>
+<input id='slider_h_mul' type="range" min="1" max="100" value="1" oninput="h_mul=Math.pow(value*0.001,2);$tx('slider_h_mul_txt', h_mul.toFixed(6))"> <i id='slider_h_mul_txt'></i> h_mul<br>
+<input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1)"> <i id='slider_h_k1_txt'></i> h_k1<br>
+<input id='slider_h_k2' type="range" min="1" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2)"> <i id='slider_h_k2_txt'></i> h_k2<br>
+AudioFunc: TODO
+ <!-- 216 speed ops/Frame -->
+ <!-- 9 rAudioFreq Multiplyer -->
+ <!-- 0.000289 timestamp_incr -->
+ <!-- 0.000036 h_mul -->
+
+</div>
+<div class="hor">
+<fieldset>
+<legend style="border: 1px solid; width:500px;">
+<span class='label'>settings of current ant</span><select id="new_antFuncs" onclick="select_ant(this)" class="abs"></select><span class='r w3-bar-item w3-btn' onclick="new_ant(ant)">new_ant</span><span class='r w3-bar-item w3-btn' onclick="new_ant(ant_f)">new_ant float</span>
+</legend>
+<input id='sliderdirM_L' type="range" min="2" max="100" value="3" oninput="dirM_L=Math.min(this.value,dirM); $tx('sliderdirM_L_txt', dirM_L)">
+<i id='sliderdirM_L_txt'>3</i>dirM_L max dir when turn left, 3 by default, cant be more than dirM<br>
+
+<input id='sliderdirM' type="range" min="2" max="100" value="3" oninput="dirM=Math.max(this.value,dirM_L); $tx('sliderdirM_txt', dirM)">
+<i id='sliderdirM_txt'>3</i>dirM max dir when turn right, 3 by default<br>
+<legend id='ant_f_settings' style="background-color: #dddddd;border: 1px solid">
+<input id='slider_xAdd' type="range" min="-200" max="200" value="22" oninput="xAdd_set(value);"><i id='slide_xAdd_txt'>0.2</i>xAdd<br>
+<input id='slider_xSub' type="range" min="-200" max="200" value="22" oninput="xSub_set(value);"><i id='slide_xSub_txt'>0.2</i>xSub<br>
+<input id='slider_yAdd' type="range" min="-200" max="200" value="22" oninput="yAdd_set(value);"><i id='slide_yAdd_txt'>0.2</i>yAdd<br>
+<input id='slider_ySub' type="range" min="-200" max="200" value="22" oninput="ySub_set(value);"><i id='slide_ySub_txt'>0.2</i>ySub<br>
+<input id='add_sub' type="checkbox" > link add_sub
+<input id='x_y' type="checkbox" > link x_y
+<script>
+function xAdd_set(v){
+	let val=v/100;
+	ant_selected.xAdd=val;		$tx('slide_xAdd_txt', val.toFixed(2));
+	
+	let add_sub=$('add_sub').checked;
+	let x_y=$('x_y').checked;
+	
+	if(add_sub) xSub_set(v, true);
+	if(x_y) yAdd_set(v, true);
+	//if(add_sub&&x_y) {ant_selected.ySub=v;	$('slider_ySub').value=$('slider_xAdd').value}
+}
+function xSub_set(v, bSetRangeValue){
+	if( bSetRangeValue)$('slider_xSub').value=v;
+	let val=v/100;
+	ant_selected.xSub=val;		$tx('slide_xSub_txt', val.toFixed(2));
+	
+	
+	//let add_sub=$('add_sub').checked;
+	let x_y=$('x_y').checked;
+	
+	if(x_y) ySub_set(v, true);
+}
+function yAdd_set(v, bSetRangeValue){
+	if( bSetRangeValue)$('slider_yAdd').value=v;
+	let val=v/100;
+	ant_selected.yAdd=val;		$tx('slide_yAdd_txt', val.toFixed(2));
+	
+	let add_sub=$('add_sub').checked;
+	//let x_y=$('x_y').checked;
+	
+	if(add_sub) ySub_set(v, true);
+}
+function ySub_set(v, bSetRangeValue){
+	if( bSetRangeValue)$('slider_ySub').value=v;
+	let val=v/100;
+	ant_selected.ySub=val;		$tx('slide_ySub_txt', val.toFixed(2));
+}
+</script>
+</legend>
+<br style="display: block; margin: 4px 0; content:'';">antFunc <select id="antFuncs" onclick="setantFunc(this.value)" class="abs"></select><br>
+</fieldset>
+</div>
+
+<div class="hor">
+<fieldset style="background-color: #acacac;">
+<legend>
+<div class="w3-bar w3-black">
+<button class="w3-bar-item w3-btn" onclick="fill_field_clear_all()">Fill field with pattern</button>
+<button class="w3-bar-item w3-btn" onclick="clear_AllArr()">clear all</button>
+</div>
+</legend>
+pattern:
+<br>
+<input id='canvasFill_wE' type="range" min="1" max="8" value="2" oninput="canvasFill_wE=this.value;drawBox(); $tx('canvasFill_wE_txt', canvasFill_wE)"><i id='canvasFill_wE_txt'></i> w  
+<input id='canvasFill_hE' type="range" min="1" max="8" value="2" oninput="canvasFill_hE=this.value;drawBox(); $tx('canvasFill_hE_txt', canvasFill_hE)"><i id='canvasFill_hE_txt'></i> h<br>
+TODO color to be same as in shader, same as in ant function<br>
+
+<canvas id="canvasFill" width="140px" height="140px"></canvas>
+</fieldset>
+
+
+</div>
+</div>
+
+<canvas id='canvas' class='viewport'></canvas>
+
+<script> //key
+var bWaitKeyUp=false;
+function setSpeed(v)
+{
+	if(v==0){bStop=true; } //!! cancelAnimationFrame(AnimationFrame_id)   after all bStop=true;
+	else
+	{
+	v=Math.pow(10,v-1);
+	if(speed==v) {swStartStop();}
+	else {speed=v;  if(bStop) swStartStop(true); }
+	}
+	if(Math.abs(speed)>10000000) speed=10000000;
+	$('sliderSpeed').value=Math.pow( speed, 0.333333);
+	$tx("sliderSpeed_txt",speed);
+	//console.log(speed);
+	
+}
+
+//var bMobile = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)
+document.body.onkeyup = function(e){
+	bWaitKeyUp=false;
+	if(e.keyCode == 32){$('stop_sw').click()}
+	else{
+	 //if(!bMobile)	$('btn_show_field').click() //show different maps only while pressing key
+	}
+}
+
+document.body.onkeydown = function(e){
+	if(bWaitKeyUp) return; //to make keys responce faster - handle press but not up
+	bWaitKeyUp=true;
+	//console.log(e.key)
+	if( e.keyCode==46){fill_field_clear_all(); return; } //del
+	if( 
+	e.key==1 ||
+	e.key==2 ||
+	e.key==3 ||
+	e.key==4 ||
+	e.key==5 ||
+	e.key==6 ||
+	e.key==7 ||
+	e.key==8 ||
+	e.key==9
+	) setSpeed(e.key);
+	else
+	if( e.key=='`') setSpeed(0);
+	else
+	if( e.key==2){speed=10}
+	else
+	if( e.keyCode==17){$('btn_show_field').click()}
+	else
+	if(e.key == 'h'){$('btn_show_hist').click()} //codes https://stackoverflow.com/questions/3781142/jquery-or-javascript-how-determine-if-shift-key-being-pressed-while-clicking-an
+	else
+	if(e.key == 'v'){$('btn_show_visits').click()} 
+	else
+	{
+		if(event.keyCode >= 65 && event.keyCode <= 90) showArr=(showArrSortcuts[e.key]!==undefined)?showArrSortcuts[e.key]:'field';
+		//console.log(showArr)
+	}
+	//e.keyCode = 32  //space
+}
+
+function shrtcutBtn_click(e)
+{
+	showArr=e.target.innerText;	//console.log(e.target.innerText);
+}
+showArrSortcuts=[]
+</script>
+<script> //init
+window.onload=main;
+function main(){
+//-------- shrtcutBtn events
+let ar=document.getElementsByClassName('shrtcutBtn');
+for(let i=0;i<ar.length;i++)
+{
+	ar[i].addEventListener('click', shrtcutBtn_click);
+	
+	let k=ar[i].title;
+	let ksearch=k;
+	let str=ar[i].innerText;
+	showArrSortcuts[k]=str;
+	if(str.indexOf(k)==-1) ksearch=k.toUpperCase();
+	str=ar[i].innerText.replace(ksearch, '<b class=shortcut>'+k+'</b>');
+	ar[i].innerHTML=str;
+}
+}
+</script>
+<script>  //select function list
+new_sel=$('new_antFuncs');
+new_sel.addEventListener('mouseenter', select_ant_sel_dropdown);
+new_sel.addEventListener('mouseleave', antFuncs_sel_off);
+
+function new_ant(o)
+{
+ let a=Object.create(o);
+ ants.push(a);
+ ant_selected_set(a)
+ if(ant_selected.bFloatDir) dirM=4;
+ recreate_ants_sel_list();
+ new_sel.selectedIndex=ants.length-1;
+}
+
+var ants=[];
+ant.antFunc=antFF.RL;
+ant_f.antFunc=antFF_f.RL;
+new_ant(ant) //start with integer ant as it simpler and easy to make good audio
+//new_ant(ant_f)
+
+antFF_nm_list=  Object.getOwnPropertyNames(antFF).filter(function (p) {
+	return typeof antFF[p] === 'function';
+})
+
+
+//@2 https://www.w3.org/TR/wai-aria-practices-1.1/examples/listbox/listbox-rearrangeable.html
+var sel = $('antFuncs');
+var fragment = document.createDocumentFragment();
+antFF_nm_list.forEach(function(nm, index) {
+	var opt = document.createElement('option');
+	opt.innerHTML = nm;
+	opt.value = nm;
+	opt.id=nm
+	fragment.appendChild(opt);
+});
+sel.appendChild(fragment);
+sel.addEventListener('mouseenter', antFuncs_sel_dropdown);
+sel.addEventListener('mouseleave', antFuncs_sel_off);
+
+
+
+function antFuncs_sel_dropdown(e){
+e.target.setAttribute('size',e.target.length)
+e.target.style.zIndex=9;
+}
+function antFuncs_sel_off(e){
+e.target.removeAttribute('size')
+e.target.style.zIndex=0;
+}
+
+function select_ant_sel_dropdown(e){
+	e.target.setAttribute('size',e.target.length)
+	e.target.style.zIndex=9;
+}
+function recreate_ants_sel_list()
+{
+	N=new_sel.selectedIndex;
+	new_sel.innerHTML="";
+	fragment = document.createDocumentFragment();
+	for(let i=0;i<ants.length;i++)
+	{
+		var opt = document.createElement('option');
+		let str_f=ants[i].bFloatDir?"f":"";
+		let str=i+str_f+" "+ ants[i].antFunc.name; 		//console.log(str);
+		opt.innerHTML = str;
+		opt.value = i;
+		opt.id=str
+		fragment.appendChild(opt);
+	}
+	new_sel.appendChild(fragment);
+	new_sel.selectedIndex=N;
+}
+
+
+function setantFunc(nm)
+{
+	ant_selected.antFunc=antFF[nm]; //console.log(nm,antFF[nm]);
+	recreate_ants_sel_list();
+	//!upd ants list
+}
+
+function ant_selected_set(a)
+{
+	ant_selected=a; 
+	$('ant_f_settings').style.display=ant_selected.bFloatPos?'block':'none';
+}
+function select_ant(e){
+ ant_selected_set(ants[e.value])	//antFunc=antFF[nm]; 	//console.log(nm,antFF[e.id]);
+}
+
+function del_selected_ant()
+{
+ ants.splice(ants.indexOf(a.antFunc.name), 1);
+}
+
+
+//$(antFF_nm_list[0])
+</script>
+<script>//fill
+var canvasFill_wE=2,canvasFill_hE=2;
+canvasFil_patternlArrSizeM=8
+var canvasFil_patternlArr = d3.range(canvasFil_patternlArrSizeM).map(function(d, i){return d3.range(canvasFil_patternlArrSizeM).map(function(d, i){return 0;});});
+
+var canvasFill = document.getElementById("canvasFill"),
+	canvasFill_ctx = canvasFill.getContext("2d"),
+	boxSize = 20,
+	boxes = Math.floor(canvasFill.width / boxSize);
+canvasFill.addEventListener('click', canvasFill_Click);
+//canvasFill.addEventListener('mousemove', canvasFill_Click);
+
+function drawBox() { //initial draw of empty grid
+	canvasClear(canvasFill);
+	canvasFill_ctx.beginPath();
+	canvasFill_ctx.fillStyle = "white";
+	canvasFill_ctx.lineWidth = 2;
+	canvasFill_ctx.strokeStyle = 'black';
+	for (var row = 0; row < canvasFill_hE; row++) {
+		for (var column = 0; column < canvasFill_wE; column++) {
+		  var x = column * boxSize;
+		  var y = row * boxSize;
+		  canvasFill_ctx.rect(x, y, boxSize, boxSize);
+		  canvasFill_ctx.fill();
+		  canvasFill_ctx.stroke();
+		}
+	}
+	canvasFill_ctx.closePath();
+}
+var colorFill_i=0;
+var colorFill_iE=6;
+var colors= [ 'black', 'white', 'blue', 'red', 'green', 'yellow', 'purple', 'aqua', 'fuchsia', 'gray', 
+'lime', 'maroon', 'navy', 'olive', 'orange', 
+'silver', 'teal'];
+var colorsABC= ['aqua', 'black', 'blue', 'fuchsia', 'gray', 'green', 
+'lime', 'maroon', 'navy', 'olive', 'orange', 'purple', 'red', 
+'silver', 'teal', 'white', 'yellow'];
+var canvasFill_Click_pos_old=-1;
+function canvasFill_Click(e) {
+	let row=Math.floor(e.offsetX / boxSize)
+	let column=Math.floor(e.offsetY / boxSize)
+	
+	
+	let pos=row*canvasFill_hE+column;
+	if(canvasFill_Click_pos_old==pos) //change color only if clicking again
+	{
+		colorFill_i++; colorFill_i%=colorFill_iE;
+	}
+	canvasFill_Click_pos_old=pos;
+	
+	canvasFill_ctx.fillStyle=colors[colorFill_i] //RGBArr2HTML(hsvToRgb(colorFill_i/colorFill_iE,1,1))
+	canvasFill_ctx.fillRect(row * boxSize,	column * boxSize,	boxSize, boxSize);
+
+	canvasFil_patternlArr[column][row]=colorFill_i;
+	
+	fill_field(1);
+}
+
+drawBox();
+
+
+
+function fill_field(b_fill_w_pattern)
+{
+	for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let pos=x*hh+y;
+			 field[pos]= b_fill_w_pattern ?
+				canvasFil_patternlArr[y%canvasFill_hE][x%canvasFill_wE]*222/colorFill_iE //fill field with pattern from canvasFil_patternlArr
+				: 0; 
+			}
+	}
+}
+
+function fill_field_clear_all()
+{
+	fill_field(1); clearAll();
+}
+function clear_AllArr()
+{
+	fill_field(0); clearAll();
+}
+
+function clearAll() //except field
+{
+	for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			//let pos=x*hh+y;
+			 arrHist[x][y] =0;
+			 arrVisits[x][y] =0;
+			 arrHistDir_E[x][y] =0;
+			 arrDir_last[x][y] =0;
+			 arrHistDirAbs[x][y] =0;
+			 arrHist_rotSpeed[x][y] =0;
+			}
+	}
+}
+
+</script>
+
+<script> //loop
+resetwh();
+ 
+var canvas = $('canvas');
+canvas.width=ww;
+canvas.height=hh;
+
+const gl = canvas.getContext("webgl", { alpha: false }); //if (!gl) {alert('no webgl')}
+
+let programInfo = webglUtils.createProgramInfo(
+   gl, [
+`
+attribute vec2 a_position;
+attribute vec2 a_texCoord;
+
+uniform vec2 u_resolution;
+
+varying vec2 v_texCoord;
+
+void main() {
+   //gl_PointSize = 12.0;
+  
+   vec2 zeroToOne = a_position / u_resolution; // convert the rectangle from pixels to 0.0 to 1.0
+   vec2 zeroToTwo = zeroToOne * 2.0; // convert from 0->1 to 0->2
+   vec2 clipSpace = zeroToTwo - 1.0; // convert from 0->2 to -1->+1 (clipspace)
+
+   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); //@@@a_position
+
+   // pass the texCoord to the fragment shader. The GPU will interpolate this value between points.
+   v_texCoord = a_texCoord;
+}
+`
+, //==================================
+`
+precision highp float;
+
+uniform sampler2D u_image;
+uniform vec2 u_textureSize;
+
+varying vec2 v_texCoord; //from the vertex shader
+
+uniform float timestamp;
+uniform float h_mul;
+uniform float h_k1;
+uniform float h_k2;
+
+void main() {
+   //vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+   //gl_FragColor = (
+  //	 texture2D(u_image, v_texCoord) +
+   //	texture2D(u_image, v_texCoord + vec2(onePixel.x, 0.0)) +
+   //	texture2D(u_image, v_texCoord + vec2(-onePixel.x, 0.0))) / 3.0;
+	   
+	//gl_FragColor = vec4(v_texCoord.x, v_texCoord.y, 0, 1); 
+	
+	float c0=texture2D(u_image, v_texCoord).x;
+	if(c0==0.)
+	{
+		gl_FragColor = vec4(0.,0.,0.,1.);
+		return;
+	}
+	
+	vec3 c=vec3(sin(c0*h_mul+timestamp),1.,1.); //^^ cant make timestamp increment =0, it still growing
+	
+	//vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec4 K = vec4(1.0, h_k1, h_k2, 3.0); //! TODO i want more palette control control, some gradients with 'stops'
+	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	c= c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+	//c=hsv2rgb(c); //^^^nw
+	
+	gl_FragColor = vec4(c,1.);
+	
+	
+	/*
+	if(texture2D(u_image, v_texCoord).x>0.1)
+		gl_FragColor = vec4(1.,0.,0.,1.);
+	else
+	if(texture2D(u_image, v_texCoord).x>0.5)
+		gl_FragColor = vec4(0.,1.,0.,1.);
+	else
+		gl_FragColor = vec4(0.,0.,1.,1.);
+	*/
+	
+	
+	
+	//gl_FragColor = vec4( hsv2rgb(c), 1.);
+	//gl_FragColor = texture2D(u_image, v_texCoord)+vec4(v_texCoord.x, v_texCoord.y, 0, 1); //vec4(1, 0.5, 0, 1);
+}
+
+// All components are in the range [0…1], including hue.
+vec3 rgb2hsv(vec3 c)
+{
+	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+ 
+
+// All components are in the range [0…1], including hue.
+vec3 hsv2rgb(vec3 c)
+{
+	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+`
+]);
+
+
+//=============================================
+
+/*
+let tex_size = 256;
+
+
+texAr=new Uint8Array(tex_size*tex_size);
+fillArray(texAr, 1)
+texAr=new Float32Array(tex_size*tex_size);
+fillArray(texAr, 1)
+function fillArray(arr, valPerPixel)
+{
+	for(let y=0, n=0;y<tex_size;y++){
+		for(let x=0;x<tex_size;x++,n++) {
+			arr[n*valPerPixel]=n;
+			//arr[n*valPerPixel]=x+y;
+		}
+	}
+}
+*/
+/*
+let tex_size = 256;
+
+
+texArr_8=new Uint8Array(tex_size*tex_size);
+for(let y=0, n=0;y<tex_size;y++){
+	for(let x=0;x<tex_size;x++,n++) {
+		texArr_8[n]=x+y;
+	}
+}
+		
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); //working
+
+texArr_RGBA8=new Uint8Array(tex_size*tex_size*4);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, texArr); //working
+
+
+texArr_32F=new Float32Array(tex_size*tex_size);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, ww, hh, 0, gl.R32F, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
+
+texArr_RGBA32F=new Float32Array(tex_size*tex_size*4);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
+*/
+
+let floatTextures = gl.getExtension('OES_texture_float'); if (!floatTextures) { alert('no floating point tex support');}
+//=============================================
+
+//texArr=new Uint8Array(ww*hh)
+texArr=new Float32Array(ww*hh)
+
+var dt_avg=10, dtAnt=20, dtDraw=20;
+var bStop=true; //initial is stopped, because of need click to init audio
+var il=0;
+var timestamp=0;
+var h_mul=0.001;
+var h_k1=2/3;
+var h_k2=1/3;
+var timestamp_t=0;
+timestamp_incr=0.001, timestamp_incr_mul=1;
+function loop(timestamp) {
+timestamp=timestamp_t //!fix something increment this if delete this it will still increasing %\
+timestamp_t+=timestamp_incr*timestamp_incr_mul;
+	var t0=window.performance.now();
+	
+	for (let i = 0; i < speed; i++) { //100000000 =10M=1s on opera2020  //310+35ms separate field arr
+	for(let i=0;i<ants.length;i++)
+	{
+		 ants[i].run();
+		 //bStop=true; //single step mode press btn //sleep(500)
+		}
+	}
+	var tA=window.performance.now();
+
+/*
+			c = ((i & 8) ^ (j & 8))*255;
+texArr[(y*ww+x)*4] = 222; // Red component
+texArr[(y*ww+x)*4+1] = 111; // Green component
+texArr[(y*ww+x)*4+2] = c; // Blue component
+texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
+*/
+
+
+	switch(showArr)
+	{
+		default:
+		case 'field':
+		for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let pos=x*hh+y;
+			let value = field[pos];
+			//if(value==0&&buffer32[n]==0) continue; //skip unused
+			//if(value!=0&& buffer32[n]!=0) continue;
+			
+			texArr[y*ww+x] = value;
+		}
+		}
+		timestamp_incr_mul=0;
+		break;
+		case 'arrHist':
+		for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let value = arrHist[x][y]
+			//if(value==0&&buffer32[n]==0) continue; //skip unused
+			
+			texArr[y*ww+x] = value*0.1;
+		}
+		}
+		timestamp_incr_mul=10;
+		break;
+		case 'arrVisits':
+		for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let value = arrVisits[x][y]
+			//if(value==0&&buffer32[n]==0) continue; //skip unused
+			//if(value!=0&& buffer32[n]==0) continue;
+			
+			texArr[y*ww+x] = value*16;
+			
+		}
+		}
+		timestamp_incr_mul=1;
+		break;
+
+
+
+		case 'arrDir_last':
+		for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let value = arrDir_last[x][y]*64
+			//if(value==0&&buffer32[n]==0) continue; //skip unused
+			//if(value!=0&& buffer32[n]==0) continue;
+			
+			texArr[y*ww+x] = value;
+			
+		}
+		}
+		timestamp_incr_mul=1;
+		break;
+		
+		case 'arrHistDir_E':
+		for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let value = arrHistDir_E[x][y]
+			//if(value==0&&buffer32[n]==0) continue; //skip unused
+			//if(value!=0&& buffer32[n]==0) continue;
+			
+			texArr[y*ww+x] = value*16;
+			
+		}
+		}
+		timestamp_incr_mul=1;
+		break;
+		
+		case 'arrHistDirAbs':
+		for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let value = arrHistDirAbs[x][y]
+			//if(value==0&&buffer32[n]==0) continue; //skip unused
+			//if(value!=0&& buffer32[n]==0) continue;
+			
+			texArr[y*ww+x] = value;
+			
+		}
+		}
+		timestamp_incr_mul=1;		
+		break;
+		
+		case 'arrHist_rotSpeed':
+		for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let value = arrHist_rotSpeed[x][y]
+			//if(value==0&&buffer32[n]==0) continue; //skip unused
+			//if(value!=0&& buffer32[n]==0) continue;
+			
+			texArr[y*ww+x] = value*8;
+			
+		}
+		}
+		timestamp_incr_mul=0;
+		break;
+	}
+
+
+
+ //var rgbaTex = textureFromPixelArray(gl, texArr, gl.RGBA, ww, hh); //convert texArr to Uint8Array
+
+  textureField = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, textureField);
+
+  // Set the parameters so we can render any size image.
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  // Upload the image into the texture.
+  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); // new Uint8Array(texArr)
+  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(texArr));
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.FLOAT, new Float32Array(texArr)); //! memory leak without "new Float32Array"
+
+
+
+  gl.uniform1f(timestampId, timestamp); 
+  gl.uniform1f(h_mulId, h_mul); 
+  gl.uniform1f(h_k1Id, h_k1); 
+  gl.uniform1f(h_k2Id, h_k2); 
+  //gl.uniform1i(texId, rgbaTex); //unnecessary
+
+  // set the resolution
+  gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
+
+  // set the size of the image
+  gl.uniform2f(textureSizeLocation, ww, hh);
+  
+
+  // Draw the rectangle.
+  gl.drawArrays(gl.TRIANGLES, 0, 6); //primitiveType offset count
+  
+	
+	dtAnt=dtAnt*0.9+(tA-t0)*0.1;
+	dtDraw=dtDraw*0.9+(window.performance.now()-tA)*0.1;
+	
+	let dt0=window.performance.now()-t0; dt_avg=Math.abs((dt0-dt_avg)/dt_avg)>0.2?dt0: dt_avg*0.95+(window.performance.now()-t0)*0.05;
+	$('dtAnt').innerText=dtAnt.toFixed(1);
+	$('dtDraw').innerText=dtDraw.toFixed(1);
+	$('dirAbs').innerText=ant_selected.dirAbs.toFixed(4)
+	$('step_i').innerText=ant_selected.step_i
+	
+	let crotSpeed=((ant_selected.dirAbs-ant_dirAbs_last)/(ant_selected.step_i-ant_step_i_last))
+	$('rotSpeed').innerText=crotSpeed.toFixed(2)
+	$('antrotSpeed').innerText=ant_selected.rotSpeed.toFixed(2)
+	$('il').innerText=il
+	
+	ant_dirAbs_last=ant_selected.dirAbs;
+	ant_step_i_last=ant_selected.step_i;
+	
+	
+	if(il%4==0)
+	//playTone(30+ant_selected.rotSpeed*10, "sine", 1) //https://github.com/escottalexander/simpleTones.js
+	//playTone(30+ant_selected.rotSpeed*10)
+	//changeTone(30+ant_selected.rotSpeed*10)
+	//playTone(50+arrVisits[ant_selected.x][ant_selected.y]%2048,0.2)
+	
+	
+	if(binit_Audio && osc.bOn)
+	{
+		let Timeout=dt0
+		//let freq_new=30+Math.abs(ant_selected.rotSpeed)*AudioFreqMul; //
+		let freq_new=500+ant_selected.rotSpeed*AudioFreqMul;	if(freq_new<30) freq_new=30+Math.abs(freq_new-30)
+		if(freq_avg==0) freq_avg=freq_new;
+		else 
+		{
+		freq_avg=freq_new;
+		/*
+			if(Math.abs(freq_avg-freq_new)<Timeout/8) //8hz/ms
+					freq_avg=freq_avg;
+			else 
+			{
+				if(Timeout>50)
+					freq_avg=freq_avg*0.5+freq_new*0.5;
+				else
+					freq_avg=freq_avg*0.6+freq_new*0.4;
+			}
+		*/
+		
+		}
+		osc.frequency.linearRampToValueAtTime(freq_avg,context.currentTime+Timeout/1000); $('AudioFreq').innerText=Math.floor(freq_avg);
+	}
+	
+	
+	il++;
+	if(!bStop)	requestAnimationFrame(loop)
+}
+	let ant_dirAbs_last=0;
+	let ant_step_i_last=0;
+
+var bBeforeStart=true;
+function swStartStop(b) //true to start.	undefined to toggle
+{
+	bBeforeStart=false;
+	if(b===undefined)	bStop=!bStop;
+	else bStop=!b;
+	
+	$tx('stop_sw',bStop?'start':'stop');
+	
+	if(!binit_Audio) init_Audio();
+	else sw_Audio();
+	
+	if(!bStop)loop();
+}
+	var osc;
+	var context;
+	var freq_avg=0;
+
+	canvas.onclick=sw_AllowAudio	//document.onclick=sw_Audio
+var binit_Audio=false;
+function init_Audio(){
+	context = new(window.AudioContext || window.webkitAudioContext)();
+	osc = context.createOscillator(); 
+	// Sine is the default type. Also available: square, sawtooth and triangle waveforms.
+	osc.type = 'sine'; 
+	var now = context.currentTime;
+	osc.frequency.setValueAtTime(440, now);
+	osc.connect(context.destination); //== const osc = new Tone.Oscillator(440, "sine").toDestination().start();
+	osc.frequency.setValueAtTime(440, now+1);
+	osc.start(now);  
+	
+	binit_Audio=true;
+	osc.bOn=true;
+}
+var bAllowAudio=true; // not Mute //! TODO re to bMute
+function sw_AllowAudio(){ //console.log(bAllowAudio)
+	if(!binit_Audio) init_Audio()
+	else
+	bAllowAudio=!osc.bOn;
+	sw_Audio(bAllowAudio);	//console.log(bAllowAudio)
+}
+function sw_Audio(bOn) //this is not solving alert "The AudioContext was not allowed to start"
+{
+	if(!binit_Audio)
+	{
+		init_Audio(); 
+		if(bBeforeStart)	swStartStop();
+		return;
+	}
+	
+	if(binit_Audio)
+	{
+		if(bOn===undefined || typeof bOn!="boolean")  bOn=!osc.bOn;
+		osc.bOn=bOn
+		//console.log('bOn, bAllowAudio',bOn, bAllowAudio)
+		if(bOn)
+		{
+			if(bAllowAudio)
+			{
+				//osc.start(now);
+				osc.connect(context.destination); 
+			}
+		}
+		else
+		{
+			osc.disconnect();
+			//osc.stop(now);
+		}
+		return;
+	}
+}
+
+var showArr='f';
+var speed=100;  //TODO slow speed less than fps //TODO move to HTML
+
+var AudioFreqMul=1;
+
+//##const osc = new Tone.Oscillator(440, "sine").toDestination()
+//===========================================
+
+
+ // look up where the vertex data needs to go.
+  const positionLocation = gl.getAttribLocation(programInfo.program, "a_position");
+  const texcoordLocation = gl.getAttribLocation(programInfo.program, "a_texCoord");
+
+  // Create a buffer to put three 2d clip space points in
+  var positionBuffer = gl.createBuffer();
+
+  // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  // Set a rectangle the same size as the image.
+  setRectangle(gl, 0, 0, ww, hh);
+
+  // provide texture coordinates for the rectangle.
+  var texcoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+	  0.0,  0.0,
+	  1.0,  0.0,
+	  0.0,  1.0,
+	  0.0,  1.0,
+	  1.0,  0.0,
+	  1.0,  1.0,
+  ]), gl.STATIC_DRAW);
+
+
+
+  // Upload the image into the texture.
+  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+  // lookup uniforms
+  const resolutionLocation = gl.getUniformLocation(programInfo.program, "u_resolution");
+  const textureSizeLocation = gl.getUniformLocation(programInfo.program, "u_textureSize");
+
+  //webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+
+  // Tell WebGL how to convert from clip space to pixels
+  //gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+  // Clear the canvas
+  //gl.clearColor(0, 0, 0, 0);
+  //gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Tell it to use our programInfo.program (pair of shaders)
+  gl.useProgram(programInfo.program);
+
+  // Turn on the position attribute
+  gl.enableVertexAttribArray(positionLocation);
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+  // Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+  var size = 2;		  // 2 components per iteration
+  var type = gl.FLOAT;   // the data is 32bit floats
+  var normalize = false; // don't normalize the data
+  var stride = 0;		// 0 = move forward size * sizeof(type) each iteration to get the next position
+  var offset = 0;		// start at the beginning of the buffer
+  gl.vertexAttribPointer(positionLocation, size, type, normalize, stride, offset);
+
+  // Turn on the texcoord attribute
+  gl.enableVertexAttribArray(texcoordLocation);
+  gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+
+  // Tell the texcoord attribute how to get data out of texcoordBuffer (ARRAY_BUFFER)
+  var size = 2;		  // 2 components per iteration
+  var type = gl.FLOAT;   // the data is 32bit floats
+  var normalize = false; // don't normalize the data
+  var stride = 0;		// 0 = move forward size * sizeof(type) each iteration to get the next position
+  var offset = 0;		// start at the beginning of the buffer
+  gl.vertexAttribPointer( texcoordLocation, size, type, normalize, stride, offset);
+
+  const texId = gl.getUniformLocation(programInfo.program, 'u_image');
+  const timestampId = gl.getUniformLocation(programInfo.program, 'timestamp');
+  const h_mulId = gl.getUniformLocation(programInfo.program, 'h_mul');
+  const h_k1Id = gl.getUniformLocation(programInfo.program, 'h_k1');
+  const h_k2Id = gl.getUniformLocation(programInfo.program, 'h_k2');
+
+
+
+function textureFromPixelArray(gl, dataArray, type, width, height) { //from arr, from  image https://stackoverflow.com/questions/9046643/webgl-create-texture
+	var dataTypedArray = new Uint8Array(dataArray); // Don't need to do this if the data is already in a typed array
+	var texture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.texImage2D(gl.TEXTURE_2D, 0, type, width, height, 0, type, gl.UNSIGNED_BYTE, dataTypedArray);
+	// Turn off mips and set  wrapping to clamp to edge so it  will work regardless of the dimensions of the video.
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); //gl.NEAREST
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	// Other texture setup here, like filter modes and mipmap generation
+	return texture;
+}
+
+
+/*
+$("#stop").on("click", function() {
+  cancelAnimationFrame(globalID);
+});
+$("#start").on("click", function() {
+  globalID = requestAnimationFrame(repeatOften);
+});*/
+
+
+//@@ zoom https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas
+
+//----------
+function hide_sw(id){
+  x=$('id')
+  if (x.style.display === "none") {
+	x.style.display = "block";
+  } else {
+	x.style.display = "none";
+  }
+// $('canvas').classList.toggle('hidden')
+}
+
+function setRectangle(gl, x, y, width, height) {
+  var x1 = x;
+  var x2 = x + width;
+  var y1 = y;
+  var y2 = y + height;
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+	 x1, y1,
+	 x2, y1,
+	 x1, y2,
+	 x1, y2,
+	 x2, y1,
+	 x2, y2,
+  ]), gl.STATIC_DRAW);
+}
+</script>
+
+
+
+</body>
+</html>

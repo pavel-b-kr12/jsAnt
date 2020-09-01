@@ -1,30 +1,30 @@
 <!doctype html>
 <html lang="en">
 <head>
-	<meta charset="utf-8">
-	<title></title>
-	<script type="text/javascript" src="lib/d3.v5.min.js"></script>
-	<script src="lib/webgl-utils.js"></script>
-	<script src="ant.js"></script>
-	<script src="common.js"></script> 
-	
-	<style>
-	.pa {color: red;}
-	.viewport {position: absolute;}
-	.abs {position: absolute; }
-	.shortcut{
-		text-decoration: underline; 
-		background-color: #ffeecc;
-		text-transform: capitalize;
-	}
-	.horContainer { display: flex;}
-	#inf{width: 280px;}
-	fieldset {
-		background-color: #eeeeee;
-	}
+<meta charset="utf-8">
+<title></title>
+<script type="text/javascript" src="lib/d3.v5.min.js"></script>
+<script src="lib/webgl-utils.js"></script>
+<script src="ant.js"></script>
+<script src="common.js"></script> 
 
-	legend {
-	  background-color: #bdbcbc;
+<style>
+.pa {color: red;}
+.viewport {position: absolute;}
+.abs {position: absolute; }
+.shortcut{
+	text-decoration: underline; 
+	background-color: #ffeecc;
+	text-transform: capitalize;
+}
+.horContainer { display: flex;}
+#inf{width: 280px;}
+fieldset {
+	background-color: #eeeeee;
+}
+
+legend {
+	background-color: #bdbcbc;
 
 	/*color: white;*/
 	/*border: aqua; 7efcff;*/
@@ -33,18 +33,19 @@
 
 	padding-inline-start: 0px;
 	padding-inline-end: 0px;
-	}
+}
 
-	.label
-	{
-		padding: 6px 14px;
-	}
-	.r
-	{
-		float: right;
-	}
-	</style>
-	<style>
+.label
+{
+	padding: 6px 14px;
+}
+.r{float: right;}
+.shrtcutBtn_sel
+{
+	background-color: #bdbcff;
+}
+</style>
+<style>
 .w3-black, .w3-hover-black:hover {
 	color: #fff!important;
 	background-color: #515151/*#7b6d6d!important;*/
@@ -93,7 +94,7 @@
   box-shadow: none;
   border: none;
 }
-	</style>
+</style>
 	
 </head>
 <body>
@@ -117,9 +118,9 @@ AudioFreq of selected <i id='AudioFreq'></i><br>
 <button id='stop_sw'  onclick="swStartStop()">start<p class='pa'>To start Click! or press ` 1....9 (speed)</p></button> <!--TODO dont start audio if stopped manually -->
 <br>
 To view arrays of fieds press keyboard:<br>
-<button id='btn_show_field' onclick="showArr='field'">show <b class=shortcut>F</b>ield</button> 
-<button id='btn_show_hist'  onclick="showArr='arrHist'">show <b class=shortcut>H</b>ist</button> 
-<button id='btn_show_visits' onclick="showArr='arrVisits'" title='v key'>show <b class=shortcut>V</b>isits</button> 
+<button class='shrtcutBtn' title='f'>field</button> 
+<button class='shrtcutBtn' title='h'>arrHist</button> 
+<button class='shrtcutBtn' title='v'>arrVisits</button> 
 <button class='shrtcutBtn' title='d'>arrDir_last</button> 
 <button class='shrtcutBtn' title='e'>arrHistDir_E</button> 
 <button class='shrtcutBtn' title='r'>arrHistDirAbs</button> 
@@ -216,7 +217,6 @@ TODO color to be same as in shader, same as in ant function<br>
 <canvas id="canvasFill" width="140px" height="140px"></canvas>
 </fieldset>
 
-
 </div>
 </div>
 
@@ -224,20 +224,17 @@ TODO color to be same as in shader, same as in ant function<br>
 
 <script> //key
 var bWaitKeyUp=false;
-function setSpeed(v)
-{
-	if(v==0){bStop=true; } //!! cancelAnimationFrame(AnimationFrame_id)   after all bStop=true;
+function setSpeed(v){
+	if(v==0){swStartStop(false);}
 	else
 	{
-	v=Math.pow(10,v-1);
-	if(speed==v) {swStartStop();}
-	else {speed=v;  if(bStop) swStartStop(true); }
+		v=Math.pow(10,v-1);
+		if(speed==v) {swStartStop();}
+		else {speed=v;  if(bStop) swStartStop(true); }
 	}
 	if(Math.abs(speed)>10000000) speed=10000000;
 	$('sliderSpeed').value=Math.pow( speed, 0.333333);
-	$tx("sliderSpeed_txt",speed);
-	//console.log(speed);
-	
+	$tx("sliderSpeed_txt",speed);	//console.log(speed);
 }
 
 //var bMobile = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)
@@ -250,9 +247,9 @@ document.body.onkeyup = function(e){
 }
 
 document.body.onkeydown = function(e){
-	if(bWaitKeyUp) return; //to make keys responce faster - handle press but not up
+	if(bWaitKeyUp) return; //to make keys responce faster - function handle press but not up
 	bWaitKeyUp=true;
-	//console.log(e.key)
+	//console.log(e.key, e.keyCode, String.fromCharCode(e.keyCode)) //codes https://stackoverflow.com/questions/3781142/jquery-or-javascript-how-determine-if-shift-key-being-pressed-while-clicking-an
 	if( e.keyCode==46){fill_field_clear_all(); return; } //del
 	if( 
 	e.key==1 ||
@@ -266,26 +263,32 @@ document.body.onkeydown = function(e){
 	e.key==9
 	) setSpeed(e.key);
 	else
-	if( e.key=='`') setSpeed(0);
-	else
-	if( e.key==2){speed=10}
-	else
-	if( e.keyCode==17){$('btn_show_field').click()}
-	else
-	if(e.key == 'h'){$('btn_show_hist').click()} //codes https://stackoverflow.com/questions/3781142/jquery-or-javascript-how-determine-if-shift-key-being-pressed-while-clicking-an
-	else
-	if(e.key == 'v'){$('btn_show_visits').click()} 
+	if( e.keyCode==192) setSpeed(0);//`
 	else
 	{
-		if(event.keyCode >= 65 && event.keyCode <= 90) showArr=(showArrSortcuts[e.key]!==undefined)?showArrSortcuts[e.key]:'field';
-		//console.log(showArr)
+		if(e.keyCode >= 65 && e.keyCode <= 90) 
+		{
+			sortcutPress(String.fromCharCode(e.keyCode).toLowerCase());
+		}
 	}
-	//e.keyCode = 32  //space
 }
 
-function shrtcutBtn_click(e)
-{
-	showArr=e.target.innerText;	//console.log(e.target.innerText);
+function sortcutPress(k){
+	//showArr=(showArrSortcuts[k]!==undefined)?showArrSortcuts[k]:'field'; //without btns
+	$('shrtcutBtn'+k).click();
+}
+var shrtcutBtn_last=null;
+function shrtcutBtn_click(e){
+	el=e.target;
+	if(el.tagName=='B')el=el.parentElement;
+	
+	if(el==shrtcutBtn_last) return;
+	
+	el.classList.toggle('shrtcutBtn_sel');
+	if(shrtcutBtn_last!=null) shrtcutBtn_last.classList.remove('shrtcutBtn_sel');
+	shrtcutBtn_last=el;
+	
+	showArr=el.innerText;	//console.log(e.target.innerText);
 }
 showArrSortcuts=[]
 </script>
@@ -293,19 +296,21 @@ showArrSortcuts=[]
 window.onload=main;
 function main(){
 //-------- shrtcutBtn events
-let ar=document.getElementsByClassName('shrtcutBtn');
-for(let i=0;i<ar.length;i++)
-{
-	ar[i].addEventListener('click', shrtcutBtn_click);
-	
-	let k=ar[i].title;
-	let ksearch=k;
-	let str=ar[i].innerText;
-	showArrSortcuts[k]=str;
-	if(str.indexOf(k)==-1) ksearch=k.toUpperCase();
-	str=ar[i].innerText.replace(ksearch, '<b class=shortcut>'+k+'</b>');
-	ar[i].innerHTML=str;
-}
+	let ar=document.getElementsByClassName('shrtcutBtn');
+	for(let i=0;i<ar.length;i++)
+	{
+		let k=ar[i].title;
+		
+		ar[i].id='shrtcutBtn'+k;
+		ar[i].addEventListener('click', shrtcutBtn_click);
+		
+		let ksearch=k;
+		let str=ar[i].innerText;
+		showArrSortcuts[k]=str;
+		if(str.indexOf(k)==-1) ksearch=k.toUpperCase();
+		str=ar[i].innerText.replace(ksearch, '<b class=shortcut>'+k+'</b>');
+		ar[i].innerHTML=str;
+	}
 }
 </script>
 <script>  //select function list
@@ -554,11 +559,11 @@ uniform float h_k1;
 uniform float h_k2;
 
 void main() {
-   //vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
-   //gl_FragColor = (
-  //	 texture2D(u_image, v_texCoord) +
-   //	texture2D(u_image, v_texCoord + vec2(onePixel.x, 0.0)) +
-   //	texture2D(u_image, v_texCoord + vec2(-onePixel.x, 0.0))) / 3.0;
+	//vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+	//gl_FragColor = (
+	//	 texture2D(u_image, v_texCoord) +
+	//	texture2D(u_image, v_texCoord + vec2(onePixel.x, 0.0)) +
+	//	texture2D(u_image, v_texCoord + vec2(-onePixel.x, 0.0))) / 3.0;
 	   
 	//gl_FragColor = vec4(v_texCoord.x, v_texCoord.y, 0, 1); 
 	
@@ -569,13 +574,13 @@ void main() {
 		return;
 	}
 	
-	vec3 c=vec3(sin(c0*h_mul+timestamp),1.,1.); //^^ cant make timestamp increment =0, it still growing
+	vec3 c=vec3(sin(c0*h_mul+timestamp),1.,1.);
 	
+	//c=hsv2rgb(c); //^^^nw TODO why function nw here
 	//vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
 	vec4 K = vec4(1.0, h_k1, h_k2, 3.0); //! TODO i want more palette control control, some gradients with 'stops'
 	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
 	c= c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-	//c=hsv2rgb(c); //^^^nw
 	
 	gl_FragColor = vec4(c,1.);
 	
@@ -589,8 +594,7 @@ void main() {
 	else
 		gl_FragColor = vec4(0.,0.,1.,1.);
 	*/
-	
-	
+
 	
 	//gl_FragColor = vec4( hsv2rgb(c), 1.);
 	//gl_FragColor = texture2D(u_image, v_texCoord)+vec4(v_texCoord.x, v_texCoord.y, 0, 1); //vec4(1, 0.5, 0, 1);
@@ -889,11 +893,11 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		}
 		osc.frequency.linearRampToValueAtTime(freq_avg,context.currentTime+Timeout/1000); $('AudioFreq').innerText=Math.floor(freq_avg);
 	}
-	
-	
+
 	il++;
-	if(!bStop)	requestAnimationFrame(loop)
+	if(!bStop)	frameNID=requestAnimationFrame(loop)
 }
+var frameNID=-1;// №
 	let ant_dirAbs_last=0;
 	let ant_step_i_last=0;
 
@@ -909,7 +913,14 @@ function swStartStop(b) //true to start.	undefined to toggle
 	if(!binit_Audio) init_Audio();
 	else sw_Audio();
 	
-	if(!bStop)loop();
+	if(bStop)
+	{
+		if(frameNID>=0) cancelAnimationFrame(frameNID);
+	}
+	else
+	{
+		frameNID=requestAnimationFrame(loop);
+	}
 }
 	var osc;
 	var context;
@@ -1068,16 +1079,6 @@ function textureFromPixelArray(gl, dataArray, type, width, height) { //from arr,
 	// Other texture setup here, like filter modes and mipmap generation
 	return texture;
 }
-
-
-/*
-$("#stop").on("click", function() {
-  cancelAnimationFrame(globalID);
-});
-$("#start").on("click", function() {
-  globalID = requestAnimationFrame(repeatOften);
-});*/
-
 
 //@@ zoom https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas
 

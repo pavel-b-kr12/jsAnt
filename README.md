@@ -1,15 +1,13 @@
+![](https://pavel-b-kr12.github.io/TjurmiteHQ_Langtons_ant_nest/scr/JSwebGL_2020.08.26.png)
 
-![](/JSwebGL_2020.08.26.png)
+Site to run and play this: <https://pavel-b-kr12.github.io/TjurmiteHQ_Langtons_ant_nest/>	 Applications Need click to focus and start audio.		
 
+[webGL.htm main app](https://pavel-b-kr12.github.io/TjurmiteHQ_Langtons_ant_nest/js/webGL.htm   )
+[p5js.htm  another app with DatGUI](https://pavel-b-kr12.github.io/TjurmiteHQ_Langtons_ant_nest/js/p5js.htm   )
 
-Site to run this: <http:// 8888888  >	 Need ckick to start audio.		
+[TjurmitsHQ.htm  another app with DatGUI ](https://pavel-b-kr12.github.io/TjurmiteHQ_Langtons_ant_nest/js/TjurmitsHQ.htm  )
 
-[webGL.htm main app](http://example.com/webGL.htm   )
-[p5js.htm  another app with DatGUI](http://example.com/p5js.htm   )
-
-[TjurmitsHQ.htm  another app with DatGUI ](http://example.com/TjurmitsHQ.htm  )
-
-gallery.htm				some experiments and good-looking ants
+[gallery.htm  some experiments and good-looking or good sounding ants ](https://pavel-b-kr12.github.io/TjurmiteHQ_Langtons_ant_nest/js/ants_gallery_js/index.htm  )
 
 *.htm 					separate .htm experiment ants. TODO implement as presets
 

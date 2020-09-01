@@ -1,15 +1,19 @@
 
-![composition](/footer.png)
+![](/JSwebGL_2020.08.26.png)
 
-<http:// 8888888  webGL.htm>			main app
 
-[TjurmitsHQ/index.htm  another app with DatGUI](http://example.com/   TjurmitsHQ/index.htm "need ckick to start audio")
+Site to run this: <http:// 8888888  >	 Need ckick to start audio.		
+
+[webGL.htm main app](http://example.com/webGL.htm   )
+[p5js.htm  another app with DatGUI](http://example.com/p5js.htm   )
+
+[TjurmitsHQ.htm  another app with DatGUI ](http://example.com/TjurmitsHQ.htm  )
 
 gallery.htm				some experiments and good-looking ants
 
 *.htm 					separate .htm experiment ants. TODO implement as presets
 
-###TODO
+### TODO
 * fix links
 
 * video mode 1080*1920
@@ -17,6 +21,8 @@ gallery.htm				some experiments and good-looking ants
 * GL no smooth
 
 * GL pan zoom
+
+* em, set settings in url
 
 #### other banchmark
 

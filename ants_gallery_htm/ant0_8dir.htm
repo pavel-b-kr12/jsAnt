@@ -50,7 +50,7 @@ var ant = {
 
 var bStop=false;
 var il=0;
-var speed=200;
+var speed=500;
 function loop() {
 
 
@@ -68,15 +68,17 @@ for (var i = 0; i < speed; i++) {
   
   switch(ant.dir)
   {
-        case 4:	ant.dir=0;
-	case 0:	ant.x++;	break;
+        case 8:	ant.dir=0;
+	case 0:	ant.x++;			break;
+	case 1:	ant.x++;ant.y++;	break;
+	case 2:	ant.y++;			break;
+	case 3:	ant.y++;ant.x--;	break;
+	case 4:	ant.x--;			break;
+	case 5:	ant.x--;ant.y--;	break;
+	case 6:	ant.y--;			break;
 	
-	case 1:	ant.y++;	break;
-	
-	case 2:	ant.x--;	break;
-	
-        case -1:	ant.dir=3;
-	case 3:	ant.y--;	break;
+        case -1: ant.dir=7;
+	case 7:	ant.y--;ant.x++;	break;
   }
  
   if(ant.x>xM) ant.x=0;
@@ -107,9 +109,7 @@ for (var i = 0; i < speed; i++) {
 	if(!bStop)
 	requestAnimationFrame(loop)
 	
-if(il>405){ speed=10; return;}
-if(il>200) {speed=1000; return;}
-if(il>60){speed=20; return;}
+
 }
 </script>
 </head>

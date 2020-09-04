@@ -395,6 +395,35 @@ var ant = {
 		}
 
 
+
+function dir8()
+{
+	  if(field[ant.x][ant.y]==0) 
+  {
+	field[ant.x][ant.y]=255;
+	ant.dir+=3;
+  }
+  else
+  {
+	field[ant.x][ant.y]=0;
+	ant.dir-=3;
+  }
+  switch(ant.dir)
+  {
+        case 8:	ant.dir=0;
+	case 0:	ant.x++;			break;
+	case 1:	ant.x++;ant.y++;	break;
+	case 2:	ant.y++;			break;
+	case 3:	ant.y++;ant.x--;	break;
+	case 4:	ant.x--;			break;
+	case 5:	ant.x--;ant.y--;	break;
+	case 6:	ant.y--;			break;
+	
+        case -1: ant.dir=7;
+	case 7:	ant.y--;ant.x++;	break;
+  }
+}
+
 var ant_fdir = {
 			bFloatDir:true,
 			dir : 0,

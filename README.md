@@ -10,6 +10,8 @@ Site to run and play this: <https://pavel-b-kr12.github.io/TjurmiteHQ_Langtons_a
 
 [p5js.htm  another app with DatGUI](https://pavel-b-kr12.github.io/TjurmiteHQ_Langtons_ant_nest/js/p5js.htm   )
 
+[p5js_webGL.htm  another app with DatGUI](TODO   )
+
 *.htm 					separate .htm experiment ants. TODO implement as presets
 
 ### TODO

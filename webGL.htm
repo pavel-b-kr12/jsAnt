@@ -669,7 +669,9 @@ texArr_RGBA32F=new Float32Array(tex_size*tex_size*4);
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
 */
 
-let floatTextures = gl.getExtension('OES_texture_float'); if (!floatTextures) { alert('no floating point tex support');}
+let floatTextures = gl.getExtension('OES_texture_float'); if (!floatTextures) { alert('no floating point tex support');/*use color.r + color.g * 256.0f*/}
+//,OES_texture_half_float //16b  
+
 //=============================================
 
 //texArr=new Uint8Array(ww*hh)
@@ -696,6 +698,7 @@ timestamp_t+=timestamp_incr*timestamp_incr_mul;
 		 //bStop=true; //single step mode press btn //sleep(500)
 		}
 	}
+	
 	var tA=window.performance.now();
 
 /*
@@ -811,7 +814,8 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 
  //var rgbaTex = textureFromPixelArray(gl, texArr, gl.RGBA, ww, hh); //convert texArr to Uint8Array
 
-  textureField = gl.createTexture();
+if(il==0){
+  let textureField = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, textureField);
 
   // Set the parameters so we can render any size image.
@@ -819,27 +823,21 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
+}
   // Upload the image into the texture.
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); // new Uint8Array(texArr)
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(texArr));
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.FLOAT, new Float32Array(texArr)); //! memory leak without "new Float32Array"
-
-
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.FLOAT, texArr);
 
   gl.uniform1f(timestampId, timestamp); 
   gl.uniform1f(h_mulId, h_mul); 
   gl.uniform1f(h_k1Id, h_k1); 
   gl.uniform1f(h_k2Id, h_k2); 
-  //gl.uniform1i(texId, rgbaTex); //unnecessary
+  //gl.uniform1i(texId, tar); //unnecessary
 
-  // set the resolution
-  gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
-
-  // set the size of the image
-  gl.uniform2f(textureSizeLocation, ww, hh);
+  gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);  // set the resolution
+  gl.uniform2f(textureSizeLocation, ww, hh); // set the size of the image
   
-
   // Draw the rectangle.
   gl.drawArrays(gl.TRIANGLES, 0, 6); //primitiveType offset count
   
@@ -863,12 +861,6 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 	
 	
 	if(il%4==0)
-	//playTone(30+ant_selected.rotSpeed*10, "sine", 1) //https://github.com/escottalexander/simpleTones.js
-	//playTone(30+ant_selected.rotSpeed*10)
-	//changeTone(30+ant_selected.rotSpeed*10)
-	//playTone(50+arrVisits[ant_selected.x][ant_selected.y]%2048,0.2)
-	
-	
 	if(binit_Audio && osc.bOn)
 	{
 		let Timeout=dt0
@@ -877,19 +869,19 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		if(freq_avg==0) freq_avg=freq_new;
 		else 
 		{
-		freq_avg=freq_new;
-		/*
-			if(Math.abs(freq_avg-freq_new)<Timeout/8) //8hz/ms
-					freq_avg=freq_avg;
-			else 
-			{
-				if(Timeout>50)
-					freq_avg=freq_avg*0.5+freq_new*0.5;
-				else
-					freq_avg=freq_avg*0.6+freq_new*0.4;
-			}
-		*/
-		
+			freq_avg=freq_new;
+			//if(freq_mode=='strict_dt'){
+			//
+			//	if(Math.abs(freq_avg-freq_new)<Timeout/8) //8hz/ms
+			//			freq_avg=freq_avg;
+			//	else 
+			//	{
+			//		if(Timeout>50)
+			//			freq_avg=freq_avg*0.5+freq_new*0.5;
+			//		else
+			//			freq_avg=freq_avg*0.6+freq_new*0.4;
+			//	}
+			//}
 		}
 		osc.frequency.linearRampToValueAtTime(freq_avg,context.currentTime+Timeout/1000); $('AudioFreq').innerText=Math.floor(freq_avg);
 	}

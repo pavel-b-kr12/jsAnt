@@ -59,15 +59,17 @@ for (var i = 0; i < speed; i++) {
   if(field[ant.x][ant.y]==0) 
   {
 	field[ant.x][ant.y]=255;
-	ant.dir++;
+	ant.dir+=0.3;
   }
   else
   {
 	field[ant.x][ant.y]=0;
-	ant.dir--;
+	ant.dir-=0.3;
   }
   
-  switch(ant.dir)
+  //switch(Math.floor(ant.dir))
+  switch(~~ant.dir) //== switch(ant.dir>>0) //tst speed
+  //switch(~(-ant.dir))
   {
         case 4:	ant.dir=0;
 	case 0:	ant.x++;	break;
@@ -109,7 +111,7 @@ for (var i = 0; i < speed; i++) {
 	requestAnimationFrame(loop)
 	
 if(il>405){ speed=10; return;}
-if(il>200) {speed=1000; return;}
+if(il>200) {speed=100; return;}
 if(il>60){speed=20; return;}
 }
 </script>

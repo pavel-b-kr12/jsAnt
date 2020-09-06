@@ -15,15 +15,82 @@ ms <span id="timer"></span> <br/>
 ms draw <span id="timerDraw"></span> <br/>
 dir <span id="dir"></span> <br/>
 speed <span id="speed"></span> <br/>
-<script type="text/javascript">
 
+dbg <span id="dbg"></span> <br/>
+<a id="save"><button type="button" onClick="save()">SAVE with ant in name</button></a>
+<a id="load"><button type="button" onClick="load()">LOAD</button></a>
+<input type="file" id="inpFile" accept=".png"> TODO https://jsfiddle.net/api/mdn/	https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file
+
+<label for="upload-photo">Browse...</label>
+<input type="file" name="photo" id="upload-photo" />
+
+<script type="text/javascript">
+//------------------- load https://stackoverflow.com/questions/10906734/how-to-upload-image-into-html5-canvas
+// https://stackoverflow.com/questions/11247790/reading-a-png-image-in-node-js
+// FileReader https://stackoverflow.com/questions/13938686/can-i-load-a-local-file-into-an-html-canvas-element
+
+var fileLoaded=null;
+document.getElementById('inpFile').onchange = function(e) {
+  var img = new Image();
+  img.onload = draw;
+  img.onerror = failed;
+  img.src = URL.createObjectURL(this.files[0]);
+  
+  fileLoaded=this.files[0];
+  document.getElementById("dbg").innerHTML =this.files[0].name.split("_")[2].split(';')[0];//document.getElementById("canvL").id;
+};
+function draw() {
+	var ant_v=fileLoaded.name.split("_")[2].split(';')[0];
+	switch(ant_v)
+	{
+	 case '1': 
+		alert();
+		
+	 break;
+	}
+
+  var canvas = document.getElementById('canvL');
+  canvas.width = this.width;
+  canvas.height = this.height;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(this, 0,0);
+}
+function failed() {
+  console.error("The provided file couldn't be loaded as an Image media");
+}
+//-------------------
+
+
+function antToString(){
+ //TODO
+ return "1;12;312;4123;2;-2;" //1st is version
+}
+
+function save(){
+//https://stackoverflow.com/questions/11112321/how-to-save-canvas-as-png-image
+//https://stackoverflow.com/questions/15811897/how-to-save-a-canvas-with-image-to-a-png-file
+		var t = new Date()
+
+        var download = document.getElementById("save");
+		download.download="ant_"+
+		t.getFullYear()  + "." + (t.getMonth() + 1) + "." + t.getDate()+ ".."+ t.getHours()+ "."+ t.getMinutes()+ "."+ t.getSeconds()+
+		"_"+antToString()+
+		".png"
+        var image = document.getElementById("canvL").toDataURL("image/png")
+                    .replace("image/png", "image/octet-stream");
+        download.setAttribute("href", image);
+    }
+	
 //const  bBanchmark=1
 
 
-var chartSize = 400;
-var dataSize = 400;
 
-var dataSizeCenter=dataSize/2; initGf();
+
+
+    var chartSize = 400;
+    var dataSize = 400;
+
+ var dataSizeCenter=dataSize/2; initGf();
 
 // One-liner to resume playback when user interacted with the page.
 document.addEventListener('click', function() {  //document.querySelector('button').addEventListener('click', function() {
@@ -31,6 +98,16 @@ document.addEventListener('click', function() {  //document.querySelector('butto
     console.log('Playback resumed successfully');
   });
 });
+
+//You may also create the AudioContext only when the user interacts with the page.
+/* !
+document.querySelector('button').addEventListener('click', function() {
+  var context = new AudioContext();
+  // Setup all nodes
+  ...
+});
+*/
+
 
 
 bFillNeed=false;
@@ -51,6 +128,8 @@ var prop={
 			this.dirAdds0=~~this.dirAdds0;
 			this.dirAdds1=~~this.dirAdds1;
 		}
+		
+		if(this.bfillAfterChange) this.fillClear();
 		//!! data
 	},
 
@@ -60,21 +139,21 @@ var prop={
 	colorAdds : [1, -1],
 	colorAdds0 : 0,
 	get  colorAdds0() { return this.colorAdds[0]; },
-	set  colorAdds0(val) { this.colorAdds[0]=prop.bInt_?~~val:val; }, //(this.bInt_)?~~val:val;
+	set  colorAdds0(val) { this.colorAdds[0]=prop.bInt_?~~val:val; if(this.bfillAfterChange) this.fillClear(); }, //(this.bInt_)?~~val:val;
 
 	colorAdds1 : 0,
 	get  colorAdds1() { return this.colorAdds[1]; },
-	set  colorAdds1(val) { this.colorAdds[1]=prop.bInt_?~~val:val; },
+	set  colorAdds1(val) { this.colorAdds[1]=prop.bInt_?~~val:val; if(this.bfillAfterChange) this.fillClear(); },
 
 	dir_max : 4, //!!
 	dirAdds : [-1, 1],
 	dirAdds0 : 0,
 	get  dirAdds0() { return this.dirAdds[0]; },
-	set  dirAdds0(val) { this.dirAdds[0]=prop.bInt_?~~val:val; },
+	set  dirAdds0(val) { this.dirAdds[0]=prop.bInt_?~~val:val; if(this.bfillAfterChange) this.fillClear(); },
 
 	dirAdds1 : 0,
 	get  dirAdds1() { return this.dirAdds[1]; },
-	set  dirAdds1(val) { this.dirAdds[1]=prop.bInt_?~~val:val; },
+	set  dirAdds1(val) { this.dirAdds[1]=prop.bInt_?~~val:val; if(this.bfillAfterChange) this.fillClear(); },
 
 	
 	op_per_frame : 10,
@@ -87,9 +166,13 @@ var prop={
 	bfill_clamp_to_max_colors:true,
 	bfillAfterChange:true,
  
+ //fillFunctions: {	'clear':0, 'A': 0, 'B': 1, 'C':2 },
+ fillFunctions: [	'fill 0', 'fill 99', 'columns', 'C'],
  
  fill: function ()
 	{
+	//if(typeof(this.fill_type)=='string') this.fill_type=parseInt(this.fill_type); //dat gui change type to str
+	
 	for(var xx=0; xx<dataSize; xx++)
 	{
 	for(var yy=0; yy<dataSize; yy++)
@@ -97,8 +180,9 @@ var prop={
 		var ret=0;
 		 switch(prop.fill_type) //+ cast to int
 		 {
-		  case 0: ret= 0; break;
-		  case 1: ret= xx%2*(this.bfill_clamp_to_max_colors?this.color_max:255); break;
+		  case 'fill 0': ret= 0; break;
+		  case 'fill 99': ret= 99; break;
+		  case 'columns': ret= xx%2*(this.bfill_clamp_to_max_colors?this.color_max:255); break; //
 		  
 		  case 2: ret= ((~~(xx%2))^(~~(yy%2)) )*(this.bfill_clamp_to_max_colors?this.color_max:255) ;  break;
 		  case 3: ret= xx%2*(this.bfill_clamp_to_max_colors?this.color_max/2:127)+yy%2 *(this.bfill_clamp_to_max_colors?this.color_max/2:127) ;  break;
@@ -108,7 +192,7 @@ var prop={
 		  case 5: ret= Math.random()*255;  break;// Math.random == [0, 1) //?? 256  
 		  case 6: ret= Math.Round(Math.random()*this.color_max);  break;// Math.random == [0, 1) //?? 256  
 		  
-		  //~~ == Math.floor РґРІРѕР№РЅРѕРіРѕ РїРѕР±РёС‚РѕРІРѕРіРѕ РѕС‚СЂРёС†Р°РЅРёСЏ https://medium.com/@frontman/integer-%D0%B8-float-%D0%B2-javascript-9ca16ba1484f
+		  //~~ == Math.floor двойного побитового отрицания https://medium.com/@frontman/integer-%D0%B8-float-%D0%B2-javascript-9ca16ba1484f
 		  case 7: ret= xx%255; break;
 		  case 8: ret= xx%this.color_max; break;
 		 }
@@ -183,7 +267,13 @@ f1.add(prop, 'freq_rangeMult',1,256).step(1);
 f1.open();
 
 var folder_fill = gui.addFolder('fill field');
-folder_fill.add(prop, 'fill_type',0,5).step(1);
+//folder_fill.add(prop, 'fill_type',0,5).step(1);
+folder_fill.add(prop, 'fill_type', { 'A': 0, 'B': 1, 'C':2 } );// C:prop.fill_type => "str src of function" //can be in ' ' or not
+folder_fill.add(prop, 'fill_type', prop.fillFunctions )
+.onChange(function (value) {
+  prop.fill(value);
+});
+
 folder_fill.add(prop, 'bfill_clamp_to_max_colors');
 folder_fill.add(prop, 'fill');
 folder_fill.add(prop, 'clear_display_2');
@@ -259,6 +349,7 @@ var t0=performance.now();
 
 if(prop.bInt)
 {
+												if(bFillNeed){bFillNeed=false; prop.fill();}
 for (var i = 0; i < prop.op_per_frame; i++,prop.ii_counter++) { //100000000
 
 	if(prop.ii_counter>prop.iiAdd_each_op)
@@ -455,6 +546,8 @@ t0=performance.now();
 				((valueC+188)%256 << 16) |    // blue
                 ((valueC+88)%256 <<  8) |    // green
                 valueC%256;            // red
+				
+				//@@ hueToRGB( 1.0,  1.0,  valueC)
 				
         }
     }

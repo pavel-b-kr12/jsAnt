@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+<style>
+body {margin: 0px;overflow:hidden}
+</style>
+   
+<script>
+function $(s) {return document.getElementById(s);}
+function rand() {return Math.random()}
+function $tx(s,t){$(s).innerText=t}
+function sleep(ms) {
+   var currentTime = new Date().getTime();
+   while (currentTime + ms >= new Date().getTime()){   }
+}
+
+var canvas;
+var canvasView;
+var ctx;
+var idata;
+var buffer32;
+
+var lastX,lastY;
+var dragStart,dragged;
+
+window.onload=main;
+function main()
+{
+	canvas=$('canvas'); //memory canvas
+	canvasView=$('canvasView'); //to apply pan, zoom 
+	canvas.style.display='none'
+	
+	ctx = canvas.getContext("2d", {alpha: false}); // context without alpha channel.
+	ctx.imageSmoothingEnabled = false;
+	
+	ctxView = canvasView.getContext("2d", {alpha: false}); // context without alpha channel.
+	ctxView.imageSmoothingEnabled = false;
+	imageData =ctx.createImageData(canvas.width, canvas.height); // create image data
+	buffer32= new Uint32Array(imageData.data.buffer);  // get 32-bit view
+
+	trackTransforms(ctxView);//for zoom
+	
+	lastX=canvasView.width/2, lastY=canvasView.height/2;
+		
+		canvasView.addEventListener('mousedown',function(evt){
+			document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+			lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
+			lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
+			dragStart = ctxView.transformedPoint(lastX,lastY);
+			dragged = false;
+		},false);
+		canvasView.addEventListener('mousemove',function(evt){
+			lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
+			lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
+			dragged = true;
+			if (dragStart){
+				pt = ctxView.transformedPoint(lastX,lastY);
+				ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
+				//redraw();
+			}
+		},false);
+		canvasView.addEventListener('mouseup',function(evt){
+			dragStart = null;
+			if (!dragged) zoom(evt.shiftKey ? -1 : 1 );
+		},false);
+
+		scaleFactor = 1.1;
+		var zoom = function(clicks){
+			pt = ctxView.transformedPoint(lastX,lastY);
+			ctxView.translate(pt.x,pt.y);
+			var factor = Math.pow(scaleFactor,clicks);
+			ctxView.scale(factor,factor);
+			ctxView.translate(-pt.x,-pt.y);
+			//redraw();
+		}
+
+		var handleScroll = function(evt){
+			var delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
+			if (delta) zoom(delta);
+			return evt.preventDefault() && false;
+		};
+		canvasView.addEventListener('DOMMouseScroll',handleScroll,false);
+		canvasView.addEventListener('mousewheel',handleScroll,false);
+	
+	loop();
+}
+
+    var chartSize = 512;
+    var dataSize = 512;
+	var dataSizeCenter=dataSize/2;
+	var xM=dataSize-1;
+	var yM=dataSize-1;
+
+	var field = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});//return ~~(i%2*255); //d3 way became to faster working aray 10-15%. Opera>>Chromium>>FF
+
+var ant = {
+		dir : 0,
+		x : dataSizeCenter, 
+		y: dataSizeCenter
+	}
+	
+
+var bStop=false;
+var il=0;
+var speed=200;
+function loop() {
+
+
+for (var i = 0; i < speed; i++) {
+  if(field[ant.x][ant.y]==0) 
+  {
+	field[ant.x][ant.y]=255;
+	ant.dir++;
+  }
+  else
+  {
+	field[ant.x][ant.y]=0;
+	ant.dir--;
+  }
+  
+  switch(ant.dir)
+  {
+        case 4:	ant.dir=0;
+	case 0:	ant.x++;	break;
+	
+	case 1:	ant.y++;	break;
+	
+	case 2:	ant.x--;	break;
+	
+        case -1:	ant.dir=3;
+	case 3:	ant.y--;	break;
+  }
+ 
+  if(ant.x>xM) ant.x=0;
+  else if(ant.x<0) ant.x=xM;
+  
+  if(ant.y>yM) ant.y=0;
+  else if(ant.y<0) ant.y=yM;
+}
+
+
+	for(var y=0, n=0;y<chartSize;y++)	{
+	for(var x=0;x<chartSize;x++,n++)	{
+		value=field[x][y];
+            buffer32[n] =  (255   << 24) |value
+			/*
+                (255   << 24) |		// alpha
+
+                (value/2 << 16) |	// blue
+                (value <<  8) |		// green
+                255;				// red
+				*/
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    
+if(dragStart!==undefined && dragStart!=null)
+{
+ pt = ctxView.transformedPoint(lastX,lastY);
+				ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
+}
+ctxView.drawImage(canvas, 0, 0);
+				
+				
+	il++;
+	if(!bStop)
+	requestAnimationFrame(loop)
+	
+if(il>405){ speed=10; return;}
+if(il>200) {speed=1000; return;}
+if(il>60){speed=20; return;}
+}
+
+
+
+
+
+
+
+	// Adds ctxView.getTransform() - returns an SVGMatrix
+	// Adds ctxView.transformedPoint(x,y) - returns an SVGPoint
+	function trackTransforms(ctxView){
+		var svg = document.createElementNS("http://www.w3.org/2000/svg",'svg');
+		var xform = svg.createSVGMatrix();
+		ctxView.getTransform = function(){ return xform; };
+		
+		var savedTransforms = [];
+		var save = ctxView.save;
+		ctxView.save = function(){
+			savedTransforms.push(xform.translate(0,0));
+			return save.call(ctxView);
+		};
+		var restore = ctxView.restore;
+		ctxView.restore = function(){
+			xform = savedTransforms.pop();
+			return restore.call(ctxView);
+		};
+
+		var scale = ctxView.scale;
+		ctxView.scale = function(sx,sy){
+			xform = xform.scaleNonUniform(sx,sy);
+			return scale.call(ctxView,sx,sy);
+		};
+		var rotate = ctxView.rotate;
+		ctxView.rotate = function(radians){
+			xform = xform.rotate(radians*180/Math.PI);
+			return rotate.call(ctxView,radians);
+		};
+		var translate = ctxView.translate;
+		ctxView.translate = function(dx,dy){
+			xform = xform.translate(dx,dy);
+			return translate.call(ctxView,dx,dy);
+		};
+		var transform = ctxView.transform;
+		ctx.transform = function(a,b,c,d,e,f){
+			var m2 = svg.createSVGMatrix();
+			m2.a=a; m2.b=b; m2.c=c; m2.d=d; m2.e=e; m2.f=f;
+			xform = xform.multiply(m2);
+			return transform.call(ctxView,a,b,c,d,e,f);
+		};
+		var setTransform = ctxView.setTransform;
+		ctxView.setTransform = function(a,b,c,d,e,f){
+			xform.a = a;
+			xform.b = b;
+			xform.c = c;
+			xform.d = d;
+			xform.e = e;
+			xform.f = f;
+			return setTransform.call(ctxView,a,b,c,d,e,f);
+		};
+		var pt  = svg.createSVGPoint();
+		ctxView.transformedPoint = function(x,y){
+			pt.x=x; pt.y=y;
+			return pt.matrixTransform(xform.inverse());
+		}
+	}
+</script>
+</head>
+<body>
+<canvas id='canvas' width='512' height='512'></canvas>
+<canvas id='canvasView' width='512' height='512'></canvas>
+</body>
+</html>

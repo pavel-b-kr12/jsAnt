@@ -59,15 +59,15 @@ for (var i = 0; i < speed; i++) {
   if(field[ant.x][ant.y]==0) 
   {
 	field[ant.x][ant.y]=255;
-	ant.dir++;
+	ant.dir+=0.33;
   }
   else
   {
 	field[ant.x][ant.y]=0;
-	ant.dir--;
+	ant.dir-=0.33;
   }
   
-  switch(ant.dir)
+  switch(~~ant.dir)
   {
         case 4:	ant.dir=0;
 	case 0:	ant.x++;	break;

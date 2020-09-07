@@ -7,7 +7,9 @@
 <script src="lib/webgl-utils.js"></script>
 <script src="ant.js"></script>
 <script src="common.js"></script> 
-
+<script> //debug, settings
+var bNoAudio=true;
+</script>
 <style>
 .pa {color: red;}
 .viewport {position: absolute;}
@@ -15,7 +17,7 @@
 .shortcut{
 	text-decoration: underline; 
 	background-color: #ffeecc;
-	text-transform: capitalize;
+	text-transform: capitalize;/* affect innerText, but not .textContent */
 }
 .horContainer { display: flex;}
 #inf{width: 280px;}
@@ -128,8 +130,8 @@ To view arrays of fieds press keyboard:<br>
 <br>
 <input id='sliderSpeed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('sliderSpeed_txt',speed);"> <i id='sliderSpeed_txt'>sim </i> speed ops/Frame<br><!-- TODO2 negative speed -->
 <input id='sliderAudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value;$tx('sliderAudioFreqMul_txt',AudioFreqMul);"> <i id='sliderAudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
-<input id='slider_timestamp_incr' type="range" min="1" max="100" value="1" oninput="timestamp_incr=Math.pow(value*0.001,2); $tx('slider_timestamp_incr_txt', timestamp_incr.toFixed(6))"> <i id='slider_timestamp_incr_txt'></i> timestamp_incr<br>
-<input id='slider_h_mul' type="range" min="1" max="100" value="1" oninput="h_mul=Math.pow(value*0.001,2);$tx('slider_h_mul_txt', h_mul.toFixed(6))"> <i id='slider_h_mul_txt'></i> h_mul<br>
+<input id='slider_timestamp_incr' type="range" min="1" max="200" value="1" oninput="timestamp_incr=Math.pow(value*0.001,2); $tx('slider_timestamp_incr_txt', timestamp_incr.toFixed(6))"> <i id='slider_timestamp_incr_txt'></i> timestamp_incr<br>
+<input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8))"> <i id='slider_h_mul_txt'></i> h_mul<br>
 <input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1)"> <i id='slider_h_k1_txt'></i> h_k1<br>
 <input id='slider_h_k2' type="range" min="1" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2)"> <i id='slider_h_k2_txt'></i> h_k2<br>
 AudioFunc: TODO
@@ -288,7 +290,7 @@ function shrtcutBtn_click(e){
 	if(shrtcutBtn_last!=null) shrtcutBtn_last.classList.remove('shrtcutBtn_sel');
 	shrtcutBtn_last=el;
 	
-	showArr=el.innerText;	//console.log(e.target.innerText);
+	showArr=el.textContent;	//console.log(e.target.innerText, e.target.textContent);
 }
 showArrSortcuts=[]
 </script>
@@ -304,11 +306,11 @@ function main(){
 		ar[i].id='shrtcutBtn'+k;
 		ar[i].addEventListener('click', shrtcutBtn_click);
 		
-		let ksearch=k;
+		let K=k.toUpperCase(); //k is lower case
 		let str=ar[i].innerText;
 		showArrSortcuts[k]=str;
-		if(str.indexOf(k)==-1) ksearch=k.toUpperCase();
-		str=ar[i].innerText.replace(ksearch, '<b class=shortcut>'+k+'</b>');
+		ksearch=(str.indexOf(K)==-1)?k:K; //if no UpperCase - search lower 		//TODO if no any - add k to element
+		str=str.replace(ksearch, '<b class=shortcut>'+ksearch+'</b>'); //remain case. Show UpperCase via css if no UpperCase in string
 		ar[i].innerHTML=str;
 	}
 }
@@ -681,7 +683,8 @@ var dt_avg=10, dtAnt=20, dtDraw=20;
 var bStop=true; //initial is stopped, because of need click to init audio
 var il=0;
 var timestamp=0;
-var h_mul=0.001;
+var h_mul=1800;
+var h_mul_mul=0.001;
 var h_k1=2/3;
 var h_k2=1/3;
 var timestamp_t=0;
@@ -714,6 +717,8 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 	{
 		default:
 		case 'field':
+		h_mul_mul=0.0000005;
+		timestamp_incr_mul=0;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let pos=x*hh+y;
@@ -724,39 +729,26 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 			texArr[y*ww+x] = value;
 		}
 		}
-		timestamp_incr_mul=0;
 		break;
+		
 		case 'arrHist':
+		h_mul_mul=0.0000001;
+		timestamp_incr_mul=10;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrHist[x][y]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			
-			texArr[y*ww+x] = value*0.1;
+			texArr[y*ww+x] = value;
 		}
 		}
-		timestamp_incr_mul=10;
 		break;
 		case 'arrVisits':
+		h_mul_mul=0.000003;
+		timestamp_incr_mul=1;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrVisits[x][y]
-			//if(value==0&&buffer32[n]==0) continue; //skip unused
-			//if(value!=0&& buffer32[n]==0) continue;
-			
-			texArr[y*ww+x] = value*16;
-			
-		}
-		}
-		timestamp_incr_mul=1;
-		break;
-
-
-
-		case 'arrDir_last':
-		for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			let value = arrDir_last[x][y]*64
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;
 			
@@ -764,24 +756,43 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 			
 		}
 		}
+		break;
+
+
+
+		case 'arrDir_last':
+		h_mul_mul=0.01; //!!
 		timestamp_incr_mul=1;
+		for(let y=0, n=0;y<hh;y++){
+		for(let x=0;x<ww;x++,n++) {
+			let value = arrDir_last[x][y]
+			//if(value==0&&buffer32[n]==0) continue; //skip unused
+			//if(value!=0&& buffer32[n]==0) continue;
+			
+			texArr[y*ww+x] = value;
+			
+		}
+		}
 		break;
 		
 		case 'arrHistDir_E':
+		h_mul_mul=0.00005;
+		timestamp_incr_mul=1;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrHistDir_E[x][y]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;
 			
-			texArr[y*ww+x] = value*16;
+			texArr[y*ww+x] = value;
 			
 		}
 		}
-		timestamp_incr_mul=1;
 		break;
 		
 		case 'arrHistDirAbs':
+		h_mul_mul=0.00001;
+		timestamp_incr_mul=1;	
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrHistDirAbs[x][y]
@@ -792,21 +803,21 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 			
 		}
 		}
-		timestamp_incr_mul=1;		
 		break;
 		
 		case 'arrHist_rotSpeed':
+		h_mul_mul=0.00001;
+		timestamp_incr_mul=0; //TODO but change with slider
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrHist_rotSpeed[x][y]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;
 			
-			texArr[y*ww+x] = value*8;
+			texArr[y*ww+x] = value;
 			
 		}
 		}
-		timestamp_incr_mul=0;
 		break;
 	}
 
@@ -830,7 +841,7 @@ if(il==0){
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.FLOAT, texArr);
 
   gl.uniform1f(timestampId, timestamp); 
-  gl.uniform1f(h_mulId, h_mul); 
+  gl.uniform1f(h_mulId, h_mul*h_mul_mul); 
   gl.uniform1f(h_k1Id, h_k1); 
   gl.uniform1f(h_k2Id, h_k2); 
   //gl.uniform1i(texId, tar); //unnecessary
@@ -921,6 +932,7 @@ function swStartStop(b) //true to start.	undefined to toggle
 	canvas.onclick=sw_AllowAudio	//document.onclick=sw_Audio
 var binit_Audio=false;
 function init_Audio(){
+	if(bNoAudio==true) return;
 	context = new(window.AudioContext || window.webkitAudioContext)();
 	osc = context.createOscillator(); 
 	// Sine is the default type. Also available: square, sawtooth and triangle waveforms.

@@ -29,60 +29,18 @@ window.onload=main;
 function main()
 {
 	canvas=$('canvas'); //memory canvas
-	canvasView=$('canvasView'); //to apply pan, zoom 
 	canvas.style.display='none'
-	
 	ctx = canvas.getContext("2d", {alpha: false}); // context without alpha channel.
 	ctx.imageSmoothingEnabled = false;
 	
-	ctxView = canvasView.getContext("2d", {alpha: false}); // context without alpha channel.
-	ctxView.imageSmoothingEnabled = false;
 	imageData =ctx.createImageData(canvas.width, canvas.height); // create image data
 	buffer32= new Uint32Array(imageData.data.buffer);  // get 32-bit view
 
+	canvasView=$('canvasView'); //to apply pan, zoom 
+	ctxView = canvasView.getContext("2d", {alpha: false}); // context without alpha channel.
+	ctxView.imageSmoothingEnabled = false;
 	trackTransforms(ctxView);//for zoom
-	
-	lastX=canvasView.width/2, lastY=canvasView.height/2;
-		
-		canvasView.addEventListener('mousedown',function(evt){
-			document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
-			lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
-			lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
-			dragStart = ctxView.transformedPoint(lastX,lastY);
-			dragged = false;
-		},false);
-		canvasView.addEventListener('mousemove',function(evt){
-			lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
-			lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
-			dragged = true;
-			if (dragStart){
-				pt = ctxView.transformedPoint(lastX,lastY);
-				ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
-				//redraw();
-			}
-		},false);
-		canvasView.addEventListener('mouseup',function(evt){
-			dragStart = null;
-			if (!dragged) zoom(evt.shiftKey ? -1 : 1 );
-		},false);
-
-		scaleFactor = 1.1;
-		var zoom = function(clicks){
-			pt = ctxView.transformedPoint(lastX,lastY);
-			ctxView.translate(pt.x,pt.y);
-			var factor = Math.pow(scaleFactor,clicks);
-			ctxView.scale(factor,factor);
-			ctxView.translate(-pt.x,-pt.y);
-			//redraw();
-		}
-
-		var handleScroll = function(evt){
-			var delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
-			if (delta) zoom(delta);
-			return evt.preventDefault() && false;
-		};
-		canvasView.addEventListener('DOMMouseScroll',handleScroll,false);
-		canvasView.addEventListener('mousewheel',handleScroll,false);
+	addEventsToCanvasView(canvasView,ctxView);
 	
 	loop();
 }
@@ -160,7 +118,7 @@ for (var i = 0; i < speed; i++) {
 if(dragStart!==undefined && dragStart!=null)
 {
  pt = ctxView.transformedPoint(lastX,lastY);
-				ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
+ ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
 }
 ctxView.drawImage(canvas, 0, 0);
 				
@@ -176,67 +134,111 @@ if(il>60){speed=20; return;}
 
 
 
+function addEventsToCanvasView(canvasView, ctxView)
+{
+	lastX=canvasView.width/2;
+	lastY=canvasView.height/2;
 
-
-
-
-	// Adds ctxView.getTransform() - returns an SVGMatrix
-	// Adds ctxView.transformedPoint(x,y) - returns an SVGPoint
-	function trackTransforms(ctxView){
-		var svg = document.createElementNS("http://www.w3.org/2000/svg",'svg');
-		var xform = svg.createSVGMatrix();
-		ctxView.getTransform = function(){ return xform; };
-		
-		var savedTransforms = [];
-		var save = ctxView.save;
-		ctxView.save = function(){
-			savedTransforms.push(xform.translate(0,0));
-			return save.call(ctxView);
-		};
-		var restore = ctxView.restore;
-		ctxView.restore = function(){
-			xform = savedTransforms.pop();
-			return restore.call(ctxView);
-		};
-
-		var scale = ctxView.scale;
-		ctxView.scale = function(sx,sy){
-			xform = xform.scaleNonUniform(sx,sy);
-			return scale.call(ctxView,sx,sy);
-		};
-		var rotate = ctxView.rotate;
-		ctxView.rotate = function(radians){
-			xform = xform.rotate(radians*180/Math.PI);
-			return rotate.call(ctxView,radians);
-		};
-		var translate = ctxView.translate;
-		ctxView.translate = function(dx,dy){
-			xform = xform.translate(dx,dy);
-			return translate.call(ctxView,dx,dy);
-		};
-		var transform = ctxView.transform;
-		ctx.transform = function(a,b,c,d,e,f){
-			var m2 = svg.createSVGMatrix();
-			m2.a=a; m2.b=b; m2.c=c; m2.d=d; m2.e=e; m2.f=f;
-			xform = xform.multiply(m2);
-			return transform.call(ctxView,a,b,c,d,e,f);
-		};
-		var setTransform = ctxView.setTransform;
-		ctxView.setTransform = function(a,b,c,d,e,f){
-			xform.a = a;
-			xform.b = b;
-			xform.c = c;
-			xform.d = d;
-			xform.e = e;
-			xform.f = f;
-			return setTransform.call(ctxView,a,b,c,d,e,f);
-		};
-		var pt  = svg.createSVGPoint();
-		ctxView.transformedPoint = function(x,y){
-			pt.x=x; pt.y=y;
-			return pt.matrixTransform(xform.inverse());
+	canvasView.addEventListener('mousedown',function(evt){
+		document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+		lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
+		lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
+		dragStart = ctxView.transformedPoint(lastX,lastY);
+		dragged = false;
+	},false);
+	canvasView.addEventListener('mousemove',function(evt){
+		lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
+		lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
+		dragged = true;
+		if (dragStart){
+			pt = ctxView.transformedPoint(lastX,lastY);
+			ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
+			//redraw();
 		}
+	},false);
+	canvasView.addEventListener('mouseup',function(evt){
+		dragStart = null;
+		if (!dragged) zoom(evt.shiftKey ? -1 : 1 );
+	},false);
+
+	scaleFactor = 1.1;
+	var zoom = function(clicks){
+		pt = ctxView.transformedPoint(lastX,lastY);
+		ctxView.translate(pt.x,pt.y);
+		var factor = Math.pow(scaleFactor,clicks);
+		ctxView.scale(factor,factor);
+		ctxView.translate(-pt.x,-pt.y);
+		//redraw();
 	}
+
+	var handleScroll = function(evt){
+		var delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
+		if (delta) zoom(delta);
+		return evt.preventDefault() && false;
+	};
+	canvasView.addEventListener('DOMMouseScroll',handleScroll,false);
+	canvasView.addEventListener('mousewheel',handleScroll,false);
+}
+
+
+
+// Adds ctxView.getTransform() - returns an SVGMatrix
+// Adds ctxView.transformedPoint(x,y) - returns an SVGPoint
+function trackTransforms(ctxView){
+	var svg = document.createElementNS("http://www.w3.org/2000/svg",'svg');
+	var xform = svg.createSVGMatrix();
+	ctxView.getTransform = function(){ return xform; };
+	
+	var savedTransforms = [];
+	var save = ctxView.save;
+	ctxView.save = function(){
+		savedTransforms.push(xform.translate(0,0));
+		return save.call(ctxView);
+	};
+	var restore = ctxView.restore;
+	ctxView.restore = function(){
+		xform = savedTransforms.pop();
+		return restore.call(ctxView);
+	};
+
+	var scale = ctxView.scale;
+	ctxView.scale = function(sx,sy){
+		xform = xform.scaleNonUniform(sx,sy);
+		return scale.call(ctxView,sx,sy);
+	};
+	var rotate = ctxView.rotate;
+	ctxView.rotate = function(radians){
+		xform = xform.rotate(radians*180/Math.PI);
+		return rotate.call(ctxView,radians);
+	};
+	var translate = ctxView.translate;
+	ctxView.translate = function(dx,dy){
+		xform = xform.translate(dx,dy);
+		return translate.call(ctxView,dx,dy);
+	};
+	var transform = ctxView.transform;
+	ctx.transform = function(a,b,c,d,e,f){
+		var m2 = svg.createSVGMatrix();
+		m2.a=a; m2.b=b; m2.c=c; m2.d=d; m2.e=e; m2.f=f;
+		xform = xform.multiply(m2);
+		return transform.call(ctxView,a,b,c,d,e,f);
+	};
+	var setTransform = ctxView.setTransform;
+	ctxView.setTransform = function(a,b,c,d,e,f){
+		xform.a = a;
+		xform.b = b;
+		xform.c = c;
+		xform.d = d;
+		xform.e = e;
+		xform.f = f;
+		return setTransform.call(ctxView,a,b,c,d,e,f);
+	};
+	var pt  = svg.createSVGPoint();
+	ctxView.transformedPoint = function(x,y){
+		pt.x=x; pt.y=y;
+		return pt.matrixTransform(xform.inverse());
+	}
+}
 </script>
 </head>
 <body>

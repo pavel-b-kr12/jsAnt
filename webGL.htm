@@ -134,6 +134,7 @@ To view arrays of fieds press keyboard:<br>
 <input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8))"> <i id='slider_h_mul_txt'></i> h_mul<br>
 <input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1)"> <i id='slider_h_k1_txt'></i> h_k1<br>
 <input id='slider_h_k2' type="range" min="1" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2)"> <i id='slider_h_k2_txt'></i> h_k2<br>
+<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; alert(); if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom)"> <i id='slider_zoom_txt'></i> zoom<br>
 AudioFunc: TODO
  <!-- 216 speed ops/Frame -->
  <!-- 9 rAudioFreq Multiplyer -->
@@ -295,6 +296,7 @@ function shrtcutBtn_click(e){
 showArrSortcuts=[]
 </script>
 <script> //init
+
 window.onload=main;
 function main(){
 //-------- shrtcutBtn events
@@ -314,6 +316,7 @@ function main(){
 		ar[i].innerHTML=str;
 	}
 }
+
 </script>
 <script>  //select function list
 new_sel=$('new_antFuncs');
@@ -521,6 +524,81 @@ var canvas = $('canvas');
 canvas.width=ww;
 canvas.height=hh;
 
+var lastX,lastY;
+var dragEnd_dX=0;
+var dragEnd_dY=0;
+var lastX=1/2,lastY=1/2;
+var viewCenterX=0;
+var viewCenterY=0;
+
+var dragStart,dragged;
+addEventsToCanvasView(canvas);
+function addEventsToCanvasView(canvasView)
+{
+	lastX=canvasView.width/2;
+	lastY=canvasView.height/2;
+
+	canvasView.addEventListener('mousedown',function(evt){
+		document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+		lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
+		lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
+		dragStart =[lastX,lastY];// ctxView.transformedPoint(lastX,lastY);
+		dragged = false;
+				//console.log(lastX,lastY)
+	},false);
+	canvasView.addEventListener('mousemove',function(evt){
+		lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
+		lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
+		dragged = true;
+		if (dragStart){
+			//pt = ctxView.transformedPoint(lastX,lastY);
+			//ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
+			//redraw();
+			viewCenterX=(lastX-dragStart[0])/canvasView.width*zoom+dragEnd_dX;
+			viewCenterY=(lastY-dragStart[1])/canvasView.height*zoom+dragEnd_dY;	//console.log(viewCenterX,viewCenterY)
+		}
+				//console.log(lastX,lastY)
+	},false);
+	canvasView.addEventListener('mouseup',function(evt){
+		dragStart = null;
+		if (!dragged) Zoom(evt.shiftKey ? -1 : 1 );
+		else
+		{
+			dragEnd_dX=viewCenterX;
+			dragEnd_dY=viewCenterY;
+			console.log(dragEnd_dX,dragEnd_dY)
+		}
+	},false);
+
+	scaleFactor = 1.1;
+	var Zoom = function(clicks){ //console.log(clicks)
+		//pt = ctxView.transformedPoint(lastX,lastY);
+		//ctxView.translate(pt.x,pt.y);
+		var factor = Math.pow(scaleFactor,clicks);
+		//ctxView.scale(factor,factor);
+		//ctxView.translate(-pt.x,-pt.y);
+		//redraw();
+	}
+
+	var handleScroll = function(evt){ console.log(evt.wheelDelta, zoom)
+		zoomOld=zoom;
+		zoom_t*=evt.wheelDelta>0?0.9:1.1;		if(zoom_t>0.8&&zoom_t<1.2) zoom=1; else zoom=zoom_t;
+		$('slider_zoom').value=zoom*50;
+		
+		viewCenterX+=lastX/canvasView.width*(zoom-zoomOld);
+		viewCenterY+=lastY/canvasView.height*(zoom-zoomOld);
+		dragEnd_dX=viewCenterX;
+		dragEnd_dY=viewCenterY;
+		
+		//var delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
+		//if (delta) Zoom(delta);
+		return evt.preventDefault() && false;
+	};
+	canvasView.addEventListener('DOMMouseScroll',handleScroll,false);
+	canvasView.addEventListener('mousewheel',handleScroll,false);
+}
+var zoom_t=1;
+
 const gl = canvas.getContext("webgl", { alpha: false }); //if (!gl) {alert('no webgl')}
 
 let programInfo = webglUtils.createProgramInfo(
@@ -540,7 +618,7 @@ void main() {
    vec2 zeroToTwo = zeroToOne * 2.0; // convert from 0->1 to 0->2
    vec2 clipSpace = zeroToTwo - 1.0; // convert from 0->2 to -1->+1 (clipspace)
 
-   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); //@@@a_position
+   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); //@@@a_position //TODO pan, zoom here
 
    // pass the texCoord to the fragment shader. The GPU will interpolate this value between points.
    v_texCoord = a_texCoord;
@@ -559,6 +637,29 @@ uniform float timestamp;
 uniform float h_mul;
 uniform float h_k1;
 uniform float h_k2;
+uniform float zoom;
+uniform vec2 view_center;
+
+// All components are in the range [0…1], including hue.
+vec3 rgb2hsv(vec3 c)
+{
+	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+ 
+// All components are in the range [0…1], including hue.
+vec3 hsv2rgb(vec3 c)
+{
+	//vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec4 K = vec4(1.0, h_k1, h_k2, 3.0); //! TODO i want more palette control control, some gradients with 'stops'
+	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
 
 void main() {
 	//vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
@@ -569,7 +670,7 @@ void main() {
 	   
 	//gl_FragColor = vec4(v_texCoord.x, v_texCoord.y, 0, 1); 
 	
-	float c0=texture2D(u_image, v_texCoord).x;
+	float c0=texture2D(u_image, v_texCoord*zoom-view_center).x;
 	if(c0==0.)
 	{
 		gl_FragColor = vec4(0.,0.,0.,1.);
@@ -578,12 +679,8 @@ void main() {
 	
 	vec3 c=vec3(sin(c0*h_mul+timestamp),1.,1.);
 	
-	//c=hsv2rgb(c); //^^^nw TODO why function nw here
-	//vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-	vec4 K = vec4(1.0, h_k1, h_k2, 3.0); //! TODO i want more palette control control, some gradients with 'stops'
-	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-	c= c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-	
+	c=hsv2rgb(c);
+
 	gl_FragColor = vec4(c,1.);
 	
 	
@@ -602,26 +699,7 @@ void main() {
 	//gl_FragColor = texture2D(u_image, v_texCoord)+vec4(v_texCoord.x, v_texCoord.y, 0, 1); //vec4(1, 0.5, 0, 1);
 }
 
-// All components are in the range [0…1], including hue.
-vec3 rgb2hsv(vec3 c)
-{
-	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
 
-	float d = q.x - min(q.w, q.y);
-	float e = 1.0e-10;
-	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-}
- 
-
-// All components are in the range [0…1], including hue.
-vec3 hsv2rgb(vec3 c)
-{
-	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
 
 `
 ]);
@@ -687,6 +765,7 @@ var h_mul=1800;
 var h_mul_mul=0.001;
 var h_k1=2/3;
 var h_k2=1/3;
+var zoom=1;
 var timestamp_t=0;
 timestamp_incr=0.001, timestamp_incr_mul=1;
 function loop(timestamp) {
@@ -830,8 +909,8 @@ if(il==0){
   gl.bindTexture(gl.TEXTURE_2D, textureField);
 
   // Set the parameters so we can render any size image.
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); //REPEAT CLAMP_TO_EDGE MIRRORED_REPEAT
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 }
@@ -844,6 +923,8 @@ if(il==0){
   gl.uniform1f(h_mulId, h_mul*h_mul_mul); 
   gl.uniform1f(h_k1Id, h_k1); 
   gl.uniform1f(h_k2Id, h_k2); 
+  gl.uniform1f(zoomId, zoom); 
+  gl.uniform2f(view_centerId, viewCenterX,viewCenterY);  //console.log(viewCenterX,viewCenterY)
   //gl.uniform1i(texId, tar); //unnecessary
 
   gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);  // set the resolution
@@ -1067,6 +1148,8 @@ var AudioFreqMul=1;
   const h_mulId = gl.getUniformLocation(programInfo.program, 'h_mul');
   const h_k1Id = gl.getUniformLocation(programInfo.program, 'h_k1');
   const h_k2Id = gl.getUniformLocation(programInfo.program, 'h_k2');
+  const zoomId = gl.getUniformLocation(programInfo.program, 'zoom');
+  const view_centerId = gl.getUniformLocation(programInfo.program, 'view_center');
 
 
 
@@ -1084,7 +1167,6 @@ function textureFromPixelArray(gl, dataArray, type, width, height) { //from arr,
 	return texture;
 }
 
-//@@ zoom https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas
 
 //----------
 function hide_sw(id){

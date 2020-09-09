@@ -7,8 +7,25 @@
 <script src="lib/webgl-utils.js"></script>
 <script src="ant.js"></script>
 <script src="common.js"></script> 
-<script> //debug, settings
+<script> //settings
+var h_incr=0.001; //dt
+var h_mul=1800;
+var h_k1=2/3; //hue rainbow colors positions
+var h_k2=1/3;
+var zoom=1;
 var bNoAudio=false; //false true //do not init audio at start, but only after click Audio btn
+
+var showArr='f';
+var speed=100;  //TODO slow speed less than fps //TODO move to HTML
+var AudioFreqMul=1;
+
+var viewCenterX=0;
+var viewCenterY=0;
+
+function URL_upd() //TODO ant type, antF, colorF, pattern
+{
+ history.pushState({}, null, `webGL.htm?w=${ww}&h=${hh}&h_incr=${h_incr.toFixed(6)}&h_mul=${h_mul}&h_k1=${h_k1.toFixed(2)}&h_k2=${h_k2.toFixed(2)}&zoom=${zoom.toFixed(3)}&a=${bNoAudio}`)
+}
 </script>
 <style>
 .pa {color: red;}
@@ -112,7 +129,7 @@ frame_i <i id='il'></i><br>
 dH/dStep <i id='dHdStep'></i><br>
 dH/dFrame_i <i id='dHdFrame_i'></i><br>
 AudioFreq of selected <i id='AudioFreq'></i><br>
-<button onclick="bNoAudio=!bNoAudio; sw_AllowAudio()" title='or click canvas'><b class=shortcut>A</b>udio</button> 
+<button onclick="bNoAudio=!bNoAudio; sw_AllowAudio(); URL_upd();" title='or click canvas'><b class=shortcut>A</b>udio</button> 
 <button onclick="$('canvas').requestFullscreen();">Fullscreen</button> 
 </div>
 
@@ -129,17 +146,17 @@ To view arrays of fieds press keyboard:<br>
 <button class='shrtcutBtn' title='r'>arrHistDirAbs</button> 
 <button class='shrtcutBtn' title='s'>arrHist_rotSpeed</button> 
 <br>
-<input id='sliderSpeed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('sliderSpeed_txt',speed);"> <i id='sliderSpeed_txt'>sim </i> speed ops/Frame<br><!-- TODO2 negative speed -->
-<input id='sliderAudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value;$tx('sliderAudioFreqMul_txt',AudioFreqMul);"> <i id='sliderAudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
-<input id='slider_timestamp_incr' type="range" min="1" max="200" value="1" oninput="timestamp_incr=Math.pow(value*0.001,2); $tx('slider_timestamp_incr_txt', timestamp_incr.toFixed(6))"> <i id='slider_timestamp_incr_txt'></i> timestamp_incr<br>
-<input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8))"> <i id='slider_h_mul_txt'></i> h_mul<br>
-<input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1)"> <i id='slider_h_k1_txt'></i> h_k1<br>
-<input id='slider_h_k2' type="range" min="1" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2)"> <i id='slider_h_k2_txt'></i> h_k2<br>
-<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom)"> <i id='slider_zoom_txt'></i> zoom<br>
+<input id='sliderSpeed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('sliderSpeed_txt',speed);URL_upd();"> <i id='sliderSpeed_txt'>sim </i> speed ops/Frame<br><!-- TODO2 negative speed -->
+<input id='sliderAudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value;$tx('sliderAudioFreqMul_txt',AudioFreqMul);URL_upd();"> <i id='sliderAudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
+<input id='slider_h_incr' type="range" min="1" max="200" value="1" oninput="h_incr=Math.pow(value*0.001,2); $tx('slider_h_incr_txt', h_incr.toFixed(6));URL_upd();"> <i id='slider_h_incr_txt'></i> h_incr<br>
+<input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8)); URL_upd();"> <i id='slider_h_mul_txt'></i> h_mul<br>
+<input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1);URL_upd()"> <i id='slider_h_k1_txt'></i> h_k1<br>
+<input id='slider_h_k2' type="range" min="1" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2);URL_upd()"> <i id='slider_h_k2_txt'></i> h_k2<br>
+<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom);URL_upd()"> <i id='slider_zoom_txt'></i> zoom<br>
 AudioFunc: TODO
  <!-- 216 speed ops/Frame -->
  <!-- 9 rAudioFreq Multiplyer -->
- <!-- 0.000289 timestamp_incr -->
+ <!-- 0.000289 h_incr -->
  <!-- 0.000036 h_mul -->
 
 </div>
@@ -529,8 +546,7 @@ var lastX,lastY;
 var dragEnd_dX=0;
 var dragEnd_dY=0;
 var lastX=1/2,lastY=1/2;
-var viewCenterX=0;
-var viewCenterY=0;
+
 
 var dragStart,dragged;
 addEvents_panZoom_ToCanvasView(canvas);
@@ -585,6 +601,7 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 		zoomOld=zoom;
 		zoom_t*=evt.wheelDelta>0?0.9:1.1;		if(zoom_t>0.8&&zoom_t<1.2) zoom=1; else zoom=zoom_t;
 		$('slider_zoom').value=zoom*50;
+		URL_upd();
 		
 		viewCenterX+=lastX/canvasView.width*(zoom-zoomOld);
 		viewCenterY+=lastY/canvasView.height*(zoom-zoomOld);
@@ -754,7 +771,6 @@ let floatTextures = gl.getExtension('OES_texture_float'); if (!floatTextures) { 
 //,OES_texture_half_float //16b  
 
 //=============================================
-
 //texArr=new Uint8Array(ww*hh)
 texArr=new Float32Array(ww*hh)
 
@@ -762,16 +778,14 @@ var dt_avg=10, dtAnt=20, dtDraw=20;
 var bStop=true; //initial is stopped, because of need click to init audio
 var il=0;
 var timestamp=0;
-var h_mul=1800;
-var h_mul_mul=0.001;
-var h_k1=2/3;
-var h_k2=1/3;
-var zoom=1;
 var timestamp_t=0;
-timestamp_incr=0.001, timestamp_incr_mul=1;
+//changing by colorize modes:
+var h_mul_mul=0.001;
+var h_incr_mul=1;
+
 function loop(timestamp) {
 timestamp=timestamp_t //!fix something increment this if delete this it will still increasing %\
-timestamp_t+=timestamp_incr*timestamp_incr_mul;
+timestamp_t+=h_incr*h_incr_mul;
 	var t0=window.performance.now();
 	
 	for (let i = 0; i < speed; i++) { //100000000 =10M=1s on opera2020  //310+35ms separate field arr
@@ -798,7 +812,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		default:
 		case 'field':
 		h_mul_mul=0.0000005;
-		timestamp_incr_mul=0;
+		h_incr_mul=0;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let pos=x*hh+y;
@@ -813,7 +827,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		
 		case 'arrHist':
 		h_mul_mul=0.0000001;
-		timestamp_incr_mul=10;
+		h_incr_mul=10;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrHist[x][y]
@@ -825,7 +839,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		break;
 		case 'arrVisits':
 		h_mul_mul=0.000003;
-		timestamp_incr_mul=1;
+		h_incr_mul=1;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrVisits[x][y]
@@ -842,7 +856,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 
 		case 'arrDir_last':
 		h_mul_mul=0.01; //!!
-		timestamp_incr_mul=1;
+		h_incr_mul=1;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrDir_last[x][y]
@@ -857,7 +871,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		
 		case 'arrHistDir_E':
 		h_mul_mul=0.00005;
-		timestamp_incr_mul=1;
+		h_incr_mul=1;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrHistDir_E[x][y]
@@ -872,7 +886,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		
 		case 'arrHistDirAbs':
 		h_mul_mul=0.00001;
-		timestamp_incr_mul=1;	
+		h_incr_mul=1;	
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrHistDirAbs[x][y]
@@ -887,7 +901,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		
 		case 'arrHist_rotSpeed':
 		h_mul_mul=0.00001;
-		timestamp_incr_mul=0; //TODO but change with slider
+		h_incr_mul=0; //TODO but change with slider
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
 			let value = arrHist_rotSpeed[x][y]
@@ -1071,10 +1085,6 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
 	}
 }
 
-var showArr='f';
-var speed=100;  //TODO slow speed less than fps //TODO move to HTML
-
-var AudioFreqMul=1;
 
 //##const osc = new Tone.Oscillator(440, "sine").toDestination()
 //===========================================

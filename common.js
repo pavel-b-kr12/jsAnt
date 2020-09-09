@@ -86,3 +86,6 @@ function canvasClear(canv)
 {
 canv.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
 }
+
+//--math
+function powerOf2(v) {return v && !(v & (v - 1));}

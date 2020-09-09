@@ -8,7 +8,7 @@
 <script src="ant.js"></script>
 <script src="common.js"></script> 
 <script> //debug, settings
-var bNoAudio=true;
+var bNoAudio=false; //false true //do not init audio at start, but only after click Audio btn
 </script>
 <style>
 .pa {color: red;}
@@ -112,7 +112,8 @@ frame_i <i id='il'></i><br>
 dH/dStep <i id='dHdStep'></i><br>
 dH/dFrame_i <i id='dHdFrame_i'></i><br>
 AudioFreq of selected <i id='AudioFreq'></i><br>
-<button onclick="sw_AllowAudio()" title='or click canvas'><b class=shortcut>A</b>udio</button> 
+<button onclick="bNoAudio=!bNoAudio; sw_AllowAudio()" title='or click canvas'><b class=shortcut>A</b>udio</button> 
+<button onclick="$('canvas').requestFullscreen();">Fullscreen</button> 
 </div>
 
 
@@ -134,7 +135,7 @@ To view arrays of fieds press keyboard:<br>
 <input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8))"> <i id='slider_h_mul_txt'></i> h_mul<br>
 <input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1)"> <i id='slider_h_k1_txt'></i> h_k1<br>
 <input id='slider_h_k2' type="range" min="1" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2)"> <i id='slider_h_k2_txt'></i> h_k2<br>
-<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; alert(); if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom)"> <i id='slider_zoom_txt'></i> zoom<br>
+<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom)"> <i id='slider_zoom_txt'></i> zoom<br>
 AudioFunc: TODO
  <!-- 216 speed ops/Frame -->
  <!-- 9 rAudioFreq Multiplyer -->
@@ -532,9 +533,9 @@ var viewCenterX=0;
 var viewCenterY=0;
 
 var dragStart,dragged;
-addEventsToCanvasView(canvas);
-function addEventsToCanvasView(canvasView)
-{
+addEvents_panZoom_ToCanvasView(canvas);
+function addEvents_panZoom_ToCanvasView(canvasView)
+{	console.log(ww,hh,lastX,lastY)
 	lastX=canvasView.width/2;
 	lastY=canvasView.height/2;
 
@@ -566,7 +567,7 @@ function addEventsToCanvasView(canvasView)
 		{
 			dragEnd_dX=viewCenterX;
 			dragEnd_dY=viewCenterY;
-			console.log(dragEnd_dX,dragEnd_dY)
+			//console.log(dragEnd_dX,dragEnd_dY)
 		}
 	},false);
 
@@ -580,7 +581,7 @@ function addEventsToCanvasView(canvasView)
 		//redraw();
 	}
 
-	var handleScroll = function(evt){ console.log(evt.wheelDelta, zoom)
+	var handleScroll = function(evt){ //console.log(evt.wheelDelta, zoom)
 		zoomOld=zoom;
 		zoom_t*=evt.wheelDelta>0?0.9:1.1;		if(zoom_t>0.8&&zoom_t<1.2) zoom=1; else zoom=zoom_t;
 		$('slider_zoom').value=zoom*50;
@@ -904,13 +905,18 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 
  //var rgbaTex = textureFromPixelArray(gl, texArr, gl.RGBA, ww, hh); //convert texArr to Uint8Array
 
+
 if(il==0){
   let textureField = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, textureField);
 
-  // Set the parameters so we can render any size image.
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); //REPEAT CLAMP_TO_EDGE MIRRORED_REPEAT
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  let texWrap=gl.CLAMP_TO_EDGE;
+  if(powerOf2(ww) && powerOf2(hh)) // can't have repeating non power of 2 textures, but CLAMP_TO_EDGE is allowed
+  {
+	texWrap=gl.REPEAT;
+  }  else {   console.log('wrap disabled: NPOT texure size')  }
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, texWrap); //REPEAT CLAMP_TO_EDGE MIRRORED_REPEAT
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, texWrap); 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 }

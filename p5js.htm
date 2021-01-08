@@ -7,6 +7,17 @@
 	.pa {color: red;}
 	. viewport {position: absolute;}
 	</style>
+	<script>
+	dataSize=1000;
+	hh=dataSize;
+	ww=dataSize;
+	xc=dataSize/2;
+	yc=xc;
+	xM=dataSize-1;
+	yM=dataSize-1;
+	//field=null;//TODO
+	</script>
+	
 	<script src="ant.js"></script>
 	<script src="common.js"></script>
 	<script>
@@ -15,27 +26,42 @@ function setup() {
   createCanvas(dataSize, dataSize);
 }
 
+field= new Uint8Array(ww*hh);
+ field_f= new Float32Array(ww*hh);
+ arrHist = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+ arrVisits = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+
+ arrHistDir_E = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+ arrDir_last = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+ arrHistDirAbs = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+
+ arrHist_rotSpeed = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+
 var dt_avg=10;
 var bStop=false;
 var il=0;
+
 function draw() {
 if(bStop) return;
 	var t0=window.performance.now();
-		
+//////loadPixels(); //this make some eff
+//////field=pixels	
 	for (let i = 0; i < speed; i++) { //100000000 =10M=1s on opera2020  //310+35ms separate field arr
+
 	 ant.run();
+
 	 //bStop=true; //single step mode press btn //sleep(500)
 	}
   //background(220);  
-
+//////updatePixels();
 loadPixels();
 //let d = pixelDensity(); //https://p5js.org/reference/#/p5/pixels
 
 	switch(showArr)
 	{
 		case 'f':
-		for(let y=0, n=0;y<chartSize;y++){
-		for(let x=0;x<chartSize;x++,n+=4) {
+		for(let y=0, n=0;y<dataSize;y++){
+		for(let x=0;x<dataSize;x++,n+=4) {
 			let value = field[x*hh+y];
 			if(value==0&&pixels[n]==0) continue; //skip unused
 			//if(value!=0&& pixels[n]!=0) continue;
@@ -49,8 +75,8 @@ loadPixels();
 		}
 		break;
 		case 'h':
-		for(var y=0, n=0;y<chartSize;y++){
-		for(var x=0;x<chartSize;x++,n+=4) {
+		for(var y=0, n=0;y<dataSize;y++){
+		for(var x=0;x<dataSize;x++,n+=4) {
 			var value = arrHist[x][y]
 			if(value==0&&pixels[n]==0) continue; //skip unused
 			value=hToRgb(value+il);
@@ -63,8 +89,8 @@ loadPixels();
 		}
 		break;
 		case 'v':
-		for(var y=0, n=0;y<chartSize;y++){
-		for(var x=0;x<chartSize;x++,n+=4) {
+		for(var y=0, n=0;y<dataSize;y++){
+		for(var x=0;x<dataSize;x++,n+=4) {
 			var value = arrVisits[x][y]
 			if(value==0&&pixels[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;

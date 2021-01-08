@@ -1,62 +1,6 @@
 //https://en.wikipedia.org/wiki/Turmite
 //https://en.wikipedia.org/wiki/Langton%27s_ant
 
-function resetwh()
-{
-	if(window.innerHeigh!==undefined)
-	{
-	h=window.innerHeigh>1200 ?1024:512; //console.log(window.innerHeigh, 'set hh:', hh);
-	w=window.innerWidth>1100 ?1024:512; //!TODO. this can be done afterpage load
-	}
-	else
-	{ //url ?w=32&h=512
-	let searchParams = new URLSearchParams(window.location.search);
-		h=searchParams.get('h')
-		if(h!=null){
-			h=parseInt(h); if(h<32) h=32; else if(h>2048) h=2048;
-		}
-		w=searchParams.get('w')
-		if(w!=null){
-			w=parseInt(w); if(w<32) w=32; else if(w>4096) w=4096;
-		}
-	}
-	hh = h==null?1024:h;
-	ww = w==null?1024:w;
-	console.log('set w,h, arrays to: ', ww,hh);
-
- xc=ww/2;
- yc=hh/2;
- xM=ww-1;
- yM=hh-1;
-
-chartSize=hh; //! legasy
-dataSize=hh//! legasy
-
- field= new Uint8Array(ww*hh); //fastest 8M iterations = 100ms
- field_f= new Float32Array(ww*hh); //for ant_f
-// field = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});//return ~~(i%2*255); //d3 way became to faster working aray 10-15%. d3.v5>v3 also Opera>>Chromium>>FF
-/* //this is slower than D3 in LOOP 8M iterations =140ms vs 122ms @d3
- field = new Array(dataSize);
- for (let i=0; i<dataSize; ++i) {
-	field[i] = new Uint8Array(dataSize);
-		 for (let j=0; j<dataSize; ++j) {			 field[i][j]=0;		 }
-	}
-	*/
- arrHist = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
- arrVisits = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
-
- arrHistDir_E = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
- arrDir_last = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
- arrHistDirAbs = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
-
- arrHist_rotSpeed = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
-// field =Array(ww).fill(Array(hh)); //Rows are copied by reference
-//https://stackoverflow.com/questions/1295584/most-efficient-way-to-create-a-zero-filled-javascript-array
-
-//TODO filled area per t, 	end point distance per t
-}
-resetwh();
-
 antFF=
 {
 RL:function(o,pos)

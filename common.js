@@ -1,5 +1,6 @@
 function $(s) {return document.getElementById(s);}
 function rand() {return Math.random()}
+function randInt(max) {return Math.floor(Math.random() * Math.floor(max));}
 function $tx(s,t){$(s).innerText=t}
 function sleep(ms) {
    var currentTime = new Date().getTime();

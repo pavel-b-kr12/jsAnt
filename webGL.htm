@@ -5,28 +5,138 @@
 <title></title>
 <script type="text/javascript" src="lib/d3.v5.min.js"></script>
 <script src="lib/webgl-utils.js"></script>
-<script src="ant.js"></script>
+
 <script src="common.js"></script> 
 <script> //settings
+/*
+stt=
+{
+ h_incr:0.001, //dt
+ h_mul:1800,
+ h_k1:2/3, //hue rainbow colors positions
+ h_k2:1/3,
+ zoom:1,
+ bNoAudio:false, //false true //do not init audio at start, but only after click Audio btn
+ showArr:'field',
+ speed:100,  //TODO slow speed less than fps //TODO move to HTML
+ AudioFreqMul:1, 
+//TODO Audio volume
+ viewCenterX:0,
+ viewCenterY:0
+}
+*/
 var h_incr=0.001; //dt
 var h_mul=1800;
 var h_k1=2/3; //hue rainbow colors positions
 var h_k2=1/3;
 var zoom=1;
 var bNoAudio=false; //false true //do not init audio at start, but only after click Audio btn
-
-var showArr='f';
+var showArr='field';
 var speed=100;  //TODO slow speed less than fps //TODO move to HTML
-var AudioFreqMul=1;
-
+var AudioFreqMul=1.01; 
+//TODO Audio volume
 var viewCenterX=0;
 var viewCenterY=0;
-
+var stt={};
+function createTemp_settings()
+{
+ stt.h_incr=h_incr.toFixed(6);
+ stt.h_mul=h_mul;
+ stt.h_k1=h_k1.toFixed(2);
+ stt.h_k2=h_k2.toFixed(2);
+ stt.zoom=zoom.toFixed(3);
+ stt.bNoAudio=bNoAudio;
+ stt.showArr=showArr;
+ stt.speed=speed;
+ stt.AudioFreqMul=AudioFreqMul.toFixed(3);
+ stt.viewCenterX=viewCenterX;
+ stt.viewCenterY=viewCenterY;
+ return stt;
+}
+function paramsToObject_and_Global(entries) {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
+  let result = {}
+  for(let entry of entries) { // each 'entry' is a [key, value] tupple
+    const [key, value] = entry;
+    result[key] = value;
+	
+	let num=parseFloat(value);
+	window[key] = isNaN(num)?value:num; //and upd global var. TODO test if there is speed difference for access
+  }
+  return result;
+}
+function settingsFromURL()
+{
+ stt=paramsToObject_and_Global(new URLSearchParams(window.location.search));
+}
 function URL_upd() //TODO ant type, antF, colorF, pattern
 {
- history.pushState({}, null, `webGL.htm?w=${ww}&h=${hh}&h_incr=${h_incr.toFixed(6)}&h_mul=${h_mul}&h_k1=${h_k1.toFixed(2)}&h_k2=${h_k2.toFixed(2)}&zoom=${zoom.toFixed(3)}&a=${bNoAudio}`)
+ let url_str=new URLSearchParams(createTemp_settings()).toString();//https://stackoverflow.com/questions/6566456/how-to-serialize-an-object-into-a-list-of-url-query-parameters
+ history.pushState({}, null, 'webGL.htm?'+url_str);
+  //w=${ww}&h=${hh}&h_incr=${h_incr.toFixed(6)}&h_mul=${h_mul}&h_k1=${h_k1.toFixed(2)}&h_k2=${h_k2.toFixed(2)}
+  //&zoom=${zoom.toFixed(3)}&show=${showArrSortcuts_vk[showArr]}&speed=${speed}&xc=${viewCenterX}&yc=${viewCenterY}&afm=${AudioFreqMul.toFixed(3)}&a=${bNoAudio}
+
+} //https://stackoverflow.com/questions/824349/how-do-i-modify-the-url-without-reloading-the-page
+
+function resetwh()
+{
+	settingsFromURL()
+	//
+	//if(window.innerHeigh!==undefined)
+	//{
+	//h=window.innerHeigh>1200 ?1024:512; //console.log(window.innerHeigh, 'set hh:', hh);
+	//w=window.innerWidth>1100 ?1024:512; //!TODO. this can be done afterpage load
+	//}
+	//else //TODO check url first
+	{ //url ?w=32&h=512
+
+	let searchParams = new URLSearchParams(window.location.search);
+		h=searchParams.get('h')
+		if(h!=null){
+			h=parseInt(h); if(h<32) h=32; else if(h>2048) h=2048;
+		}
+		w=searchParams.get('w')
+		if(w!=null){
+			w=parseInt(w); if(w<32) w=32; else if(w>4096) w=4096;
+		}
+	}
+	hh = h==null?1024:h;
+	ww = w==null?1024:w;
+	console.log('set w,h, arrays to: ', ww,hh);
+
+ xc=ww/2;
+ yc=hh/2;
+ xM=ww-1;
+ yM=hh-1;
+
+chartSize=hh; //! legasy
+dataSize=hh//! legasy
+
+ field= new Uint8Array(ww*hh); //fastest 8M iterations = 100ms
+ field_f= new Float32Array(ww*hh); //for ant_f
+// field = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});//return ~~(i%2*255); //d3 way became to faster working aray 10-15%. d3.v5>v3 also Opera>>Chromium>>FF
+/* //this is slower than D3 in LOOP 8M iterations =140ms vs 122ms @d3
+ field = new Array(dataSize);
+ for (let i=0; i<dataSize; ++i) {
+	field[i] = new Uint8Array(dataSize);
+		 for (let j=0; j<dataSize; ++j) {			 field[i][j]=0;		 }
+	}
+	*/
+ arrHist = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+ arrVisits = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+
+ arrHistDir_E = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+ arrDir_last = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+ arrHistDirAbs = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+
+ arrHist_rotSpeed = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+// field =Array(ww).fill(Array(hh)); //Rows are copied by reference
+//https://stackoverflow.com/questions/1295584/most-efficient-way-to-create-a-zero-filled-javascript-array
+
+//TODO filled area per t, 	end point distance per t
 }
+resetwh();
 </script>
+<script src="ant.js"></script>
 <style>
 .pa {color: red;}
 .viewport {position: absolute;}
@@ -130,7 +240,9 @@ dH/dStep <i id='dHdStep'></i><br>
 dH/dFrame_i <i id='dHdFrame_i'></i><br>
 AudioFreq of selected <i id='AudioFreq'></i><br>
 <button onclick="bNoAudio=!bNoAudio; sw_AllowAudio(); URL_upd();" title='or click canvas'><b class=shortcut>A</b>udio</button> 
-<button onclick="$('canvas').requestFullscreen();">Fullscreen</button> 
+<button onclick="$('canvas').requestFullscreen();">Fullscreen canvas</button>
+<br>
+<button onclick="window.location.replace(window.location.pathname)">reload empty</button> 
 </div>
 
 
@@ -146,13 +258,13 @@ To view arrays of fieds press keyboard:<br>
 <button class='shrtcutBtn' title='r'>arrHistDirAbs</button> 
 <button class='shrtcutBtn' title='s'>arrHist_rotSpeed</button> 
 <br>
-<input id='sliderSpeed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('sliderSpeed_txt',speed);URL_upd();"> <i id='sliderSpeed_txt'>sim </i> speed ops/Frame<br><!-- TODO2 negative speed -->
-<input id='sliderAudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value;$tx('sliderAudioFreqMul_txt',AudioFreqMul);URL_upd();"> <i id='sliderAudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
+<input id='slider_speed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('slider_speed_txt',speed);URL_upd();"> <i id='slider_speed_txt'>sim </i> speed ops/Frame<br><!-- TODO2 negative speed -->
+<input id='slider_AudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value*1;$tx('slider_AudioFreqMul_txt',AudioFreqMul);URL_upd();"> <i id='slider_AudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
 <input id='slider_h_incr' type="range" min="1" max="200" value="1" oninput="h_incr=Math.pow(value*0.001,2); $tx('slider_h_incr_txt', h_incr.toFixed(6));URL_upd();"> <i id='slider_h_incr_txt'></i> h_incr<br>
 <input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8)); URL_upd();"> <i id='slider_h_mul_txt'></i> h_mul<br>
 <input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1);URL_upd()"> <i id='slider_h_k1_txt'></i> h_k1<br>
 <input id='slider_h_k2' type="range" min="1" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2);URL_upd()"> <i id='slider_h_k2_txt'></i> h_k2<br>
-<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom);URL_upd()"> <i id='slider_zoom_txt'></i> zoom<br>
+<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom);URL_upd()"> <i id='slider_zoom_txt'></i> zoom (bettter use mouse)<br>
 AudioFunc: TODO
  <!-- 216 speed ops/Frame -->
  <!-- 9 rAudioFreq Multiplyer -->
@@ -254,8 +366,8 @@ function setSpeed(v){
 		else {speed=v;  if(bStop) swStartStop(true); }
 	}
 	if(Math.abs(speed)>10000000) speed=10000000;
-	$('sliderSpeed').value=Math.pow( speed, 0.333333);
-	$tx("sliderSpeed_txt",speed);	//console.log(speed);
+	$('slider_speed').value=Math.pow( speed, 0.333333);
+	$tx("slider_speed_txt",speed);	//console.log(speed);
 }
 
 //var bMobile = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)
@@ -311,7 +423,8 @@ function shrtcutBtn_click(e){
 	
 	showArr=el.textContent;	//console.log(e.target.innerText, e.target.textContent);
 }
-showArrSortcuts=[]
+showArrSortcuts=[];//filled with tag titles 'f', 'h' ...
+showArrSortcuts_vk=[];//value:key to search keys
 </script>
 <script> //init
 
@@ -328,7 +441,7 @@ function main(){
 		
 		let K=k.toUpperCase(); //k is lower case
 		let str=ar[i].innerText;
-		showArrSortcuts[k]=str;
+		showArrSortcuts[k]=str;		showArrSortcuts_vk[str]=k;
 		ksearch=(str.indexOf(K)==-1)?k:K; //if no UpperCase - search lower 		//TODO if no any - add k to element
 		str=str.replace(ksearch, '<b class=shortcut>'+ksearch+'</b>'); //remain case. Show UpperCase via css if no UpperCase in string
 		ar[i].innerHTML=str;
@@ -658,6 +771,7 @@ uniform float h_k2;
 uniform float zoom;
 uniform vec2 view_center;
 
+/*
 // All components are in the range [0…1], including hue.
 vec3 rgb2hsv(vec3 c)
 {
@@ -669,6 +783,7 @@ vec3 rgb2hsv(vec3 c)
 	float e = 1.0e-10;
 	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
 }
+*/
  
 // All components are in the range [0…1], including hue.
 vec3 hsv2rgb(vec3 c)
@@ -678,7 +793,25 @@ vec3 hsv2rgb(vec3 c)
 	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
 	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
+/*
+// Official HSV to RGB conversion 
+vec3 hsv2rgb( in vec3 c )
+{
+    vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
 
+	return c.z * mix( vec3(1.0), rgb, c.y);
+}
+//TODO use (seems diff is small here), but it has to be better sometimes https://www.shadertoy.com/view/MsS3Wc
+// Smooth HSV to RGB conversion 
+vec3 hsv2rgb_smooth( in vec3 c )
+{
+    vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
+
+	rgb = rgb*rgb*(3.0-2.0*rgb); // cubic smoothing	
+
+	return c.z * mix( vec3(1.0), rgb, c.y);
+}
+*/
 void main() {
 	//vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
 	//gl_FragColor = (
@@ -956,8 +1089,10 @@ if(il==0){
 	
 	dtAnt=dtAnt*0.9+(tA-t0)*0.1;
 	dtDraw=dtDraw*0.9+(window.performance.now()-tA)*0.1;
-	
+	if(il%4==0)
+	{
 	let dt0=window.performance.now()-t0; dt_avg=Math.abs((dt0-dt_avg)/dt_avg)>0.2?dt0: dt_avg*0.95+(window.performance.now()-t0)*0.05;
+	
 	$('dtAnt').innerText=dtAnt.toFixed(1);
 	$('dtDraw').innerText=dtDraw.toFixed(1);
 	$('dirAbs').innerText=ant_selected.dirAbs.toFixed(4)
@@ -971,8 +1106,7 @@ if(il==0){
 	ant_dirAbs_last=ant_selected.dirAbs;
 	ant_step_i_last=ant_selected.step_i;
 	
-	
-	if(il%4==0)
+
 	if(binit_Audio && osc.bOn)
 	{
 		let Timeout=dt0
@@ -997,7 +1131,7 @@ if(il==0){
 		}
 		osc.frequency.linearRampToValueAtTime(freq_avg,context.currentTime+Timeout/1000); $('AudioFreq').innerText=Math.floor(freq_avg);
 	}
-
+	}
 	il++;
 	if(!bStop)	frameNID=requestAnimationFrame(loop)
 }

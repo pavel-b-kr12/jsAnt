@@ -51,6 +51,7 @@ function createTemp_settings()
  stt.AudioFreqMul=AudioFreqMul.toFixed(3);
  stt.viewCenterX=viewCenterX;
  stt.viewCenterY=viewCenterY;
+ //TODO save/load position
  return stt;
 }
 function paramsToObject_and_Global(entries) {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
@@ -60,7 +61,7 @@ function paramsToObject_and_Global(entries) {//https://stackoverflow.com/questio
     result[key] = value;
 	
 	let num=parseFloat(value);
-	window[key] = isNaN(num)?value:num; //and upd global var. TODO test if there is speed difference for access
+	window[key] = isNaN(num)?value:num; //and upd global var. TODO test if there is speed difference for access //TODO check incorrect val, and set default
   }
   return result;
 }
@@ -71,7 +72,9 @@ function settingsFromURL()
 function URL_upd() //TODO ant type, antF, colorF, pattern
 {
  let url_str=new URLSearchParams(createTemp_settings()).toString();//https://stackoverflow.com/questions/6566456/how-to-serialize-an-object-into-a-list-of-url-query-parameters
- history.pushState({}, null, 'webGL.htm?'+url_str);
+ let ar=window.location.pathname.split('/');
+ history.replaceState(null, null, ar[ar.length-1]+'?'+url_str); 
+ //history.replaceState({}, null, 'webGL.htm?'+url_str);//TODO  move zoom do not upd pushState() immediately but after some timer to prevent flood of history  OR replace history replaceState()
   //w=${ww}&h=${hh}&h_incr=${h_incr.toFixed(6)}&h_mul=${h_mul}&h_k1=${h_k1.toFixed(2)}&h_k2=${h_k2.toFixed(2)}
   //&zoom=${zoom.toFixed(3)}&show=${showArrSortcuts_vk[showArr]}&speed=${speed}&xc=${viewCenterX}&yc=${viewCenterY}&afm=${AudioFreqMul.toFixed(3)}&a=${bNoAudio}
 
@@ -428,8 +431,8 @@ showArrSortcuts_vk=[];//value:key to search keys
 </script>
 <script> //init
 
-window.onload=main;
-function main(){
+window.onload=setup;
+function setup(){
 //-------- shrtcutBtn events
 	let ar=document.getElementsByClassName('shrtcutBtn');
 	for(let i=0;i<ar.length;i++)
@@ -492,12 +495,12 @@ sel.addEventListener('mouseleave', antFuncs_sel_off);
 
 
 function antFuncs_sel_dropdown(e){
-e.target.setAttribute('size',e.target.length)
-e.target.style.zIndex=9;
+	e.target.setAttribute('size',e.target.length)
+	e.target.style.zIndex=9;
 }
 function antFuncs_sel_off(e){
-e.target.removeAttribute('size')
-e.target.style.zIndex=0;
+	e.target.removeAttribute('size')
+	e.target.style.zIndex=0;
 }
 
 function select_ant_sel_dropdown(e){
@@ -524,15 +527,13 @@ function recreate_ants_sel_list()
 }
 
 
-function setantFunc(nm)
-{
+function setantFunc(nm){
 	ant_selected.antFunc=antFF[nm]; //console.log(nm,antFF[nm]);
 	recreate_ants_sel_list();
 	//!upd ants list
 }
 
-function ant_selected_set(a)
-{
+function ant_selected_set(a){
 	ant_selected=a; 
 	$('ant_f_settings').style.display=ant_selected.bFloatPos?'block':'none';
 }
@@ -540,8 +541,7 @@ function select_ant(e){
  ant_selected_set(ants[e.value])	//antFunc=antFF[nm]; 	//console.log(nm,antFF[e.id]);
 }
 
-function del_selected_ant()
-{
+function del_selected_ant(){
  ants.splice(ants.indexOf(a.antFunc.name), 1);
 }
 
@@ -609,7 +609,6 @@ function canvasFill_Click(e) {
 drawBox();
 
 
-
 function fill_field(b_fill_w_pattern)
 {
 	for(let y=0, n=0;y<hh;y++){
@@ -645,12 +644,9 @@ function clearAll() //except field
 			}
 	}
 }
-
 </script>
 
 <script> //loop
-resetwh();
- 
 var canvas = $('canvas');
 canvas.width=ww;
 canvas.height=hh;
@@ -910,6 +906,7 @@ texArr=new Float32Array(ww*hh)
 var dt_avg=10, dtAnt=20, dtDraw=20;
 var bStop=true; //initial is stopped, because of need click to init audio
 var il=0;
+var upd_gui_i=0;
 var timestamp=0;
 var timestamp_t=0;
 //changing by colorize modes:
@@ -1089,8 +1086,9 @@ if(il==0){
 	
 	dtAnt=dtAnt*0.9+(tA-t0)*0.1;
 	dtDraw=dtDraw*0.9+(window.performance.now()-tA)*0.1;
-	if(il%4==0)
+	if(upd_gui_i==0)
 	{
+	upd_gui_i=8; //upd freq
 	let dt0=window.performance.now()-t0; dt_avg=Math.abs((dt0-dt_avg)/dt_avg)>0.2?dt0: dt_avg*0.95+(window.performance.now()-t0)*0.05;
 	
 	$('dtAnt').innerText=dtAnt.toFixed(1);
@@ -1132,7 +1130,9 @@ if(il==0){
 		osc.frequency.linearRampToValueAtTime(freq_avg,context.currentTime+Timeout/1000); $('AudioFreq').innerText=Math.floor(freq_avg);
 	}
 	}
+	else upd_gui_i--;
 	il++;
+	
 	if(!bStop)	frameNID=requestAnimationFrame(loop)
 }
 var frameNID=-1;// №

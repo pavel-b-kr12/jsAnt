@@ -4,11 +4,10 @@ function randInt(max) {return Math.floor(Math.random() * Math.floor(max));}
 function $tx(s,t){$(s).innerText=t}
 function sleep(ms) {
    var currentTime = new Date().getTime();
-
-   while (currentTime + ms >= new Date().getTime()) {
-   }
+   while (currentTime + ms >= new Date().getTime()) {   }
 }
 
+//TODO test speed
 //----------
  //RGB to HSL https://stackoverflow.com/questions/41229411/how-to-optimize-execution-time-for-rgb-to-hsl-conversion-function
 //----------

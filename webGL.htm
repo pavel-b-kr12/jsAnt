@@ -80,6 +80,7 @@ function URL_upd() //TODO ant type, antF, colorF, pattern
 
 } //https://stackoverflow.com/questions/824349/how-do-i-modify-the-url-without-reloading-the-page
 
+var wh;
 function resetwh()
 {
 	settingsFromURL()
@@ -106,6 +107,7 @@ function resetwh()
 	ww = w==null?1024:w;
 	console.log('set w,h, arrays to: ', ww,hh);
 
+ wh=ww*hh;
  xc=ww/2;
  yc=hh/2;
  xM=ww-1;
@@ -114,8 +116,10 @@ function resetwh()
 chartSize=hh; //! legasy
 dataSize=hh//! legasy
 
- field= new Uint8Array(ww*hh); //fastest 8M iterations = 100ms
- field_f= new Float32Array(ww*hh); //for ant_f
+
+ field = new Uint8Array(wh);
+ //2D array [x][y] tested as slower https://stackoverflow.com/questions/1242705/performance-of-2-dimensional-array-vs-1-dimensional-array
+ field_f= new Float32Array(wh); //for ant_f
 // field = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});//return ~~(i%2*255); //d3 way became to faster working aray 10-15%. d3.v5>v3 also Opera>>Chromium>>FF
 /* //this is slower than D3 in LOOP 8M iterations =140ms vs 122ms @d3
  field = new Array(dataSize);
@@ -124,14 +128,18 @@ dataSize=hh//! legasy
 		 for (let j=0; j<dataSize; ++j) {			 field[i][j]=0;		 }
 	}
 	*/
- arrHist = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
- arrVisits = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
 
- arrHistDir_E = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
- arrDir_last = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
- arrHistDirAbs = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+ arrHist = new Uint8Array(wh);
+ arrVisits = new Uint8Array(wh);
 
- arrHist_rotSpeed = d3.range(ww).map(function(d, i){return d3.range(hh).map(function(d, i){return 0;});});
+ arrHistDir_E = new Uint8Array(wh);
+ arrDir_last = new Uint8Array(wh);
+ arrHistDirAbs = new Uint8Array(wh);
+
+ arrHist_rotSpeed = new Uint8Array(wh);
+
+//field.fill(4, 1, 3); //val, start, end
+
 // field =Array(ww).fill(Array(hh)); //Rows are copied by reference
 //https://stackoverflow.com/questions/1295584/most-efficient-way-to-create-a-zero-filled-javascript-array
 
@@ -241,8 +249,9 @@ antrotSpeed <i id='antrotSpeed'></i><br>
 frame_i <i id='il'></i><br>
 dH/dStep <i id='dHdStep'></i><br>
 dH/dFrame_i <i id='dHdFrame_i'></i><br>
+
 AudioFreq of selected <i id='AudioFreq'></i><br>
-<button onclick="bNoAudio=!bNoAudio; sw_AllowAudio(); URL_upd();" title='or click canvas'><b class=shortcut>A</b>udio</button> 
+
 <button onclick="$('canvas').requestFullscreen();">Fullscreen canvas</button>
 <br>
 <button onclick="window.location.replace(window.location.pathname)">reload empty</button> 
@@ -262,7 +271,7 @@ To view arrays of fieds press keyboard:<br>
 <button class='shrtcutBtn' title='s'>arrHist_rotSpeed</button> 
 <br>
 <input id='slider_speed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('slider_speed_txt',speed);URL_upd();"> <i id='slider_speed_txt'>sim </i> speed ops/Frame<br><!-- TODO2 negative speed -->
-<input id='slider_AudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value*1;$tx('slider_AudioFreqMul_txt',AudioFreqMul);URL_upd();"> <i id='slider_AudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
+
 <input id='slider_h_incr' type="range" min="1" max="200" value="1" oninput="h_incr=Math.pow(value*0.001,2); $tx('slider_h_incr_txt', h_incr.toFixed(6));URL_upd();"> <i id='slider_h_incr_txt'></i> h_incr<br>
 <input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8)); URL_upd();"> <i id='slider_h_mul_txt'></i> h_mul<br>
 <input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1);URL_upd()"> <i id='slider_h_k1_txt'></i> h_k1<br>
@@ -351,9 +360,35 @@ pattern:
 TODO color to be same as in shader, same as in ant function<br>
 
 <canvas id="canvasFill" width="140px" height="140px"></canvas>
+
+<input id='slider_fieldAdd' type="range" min="2" max="64" value="8" oninput="fieldAdd=value; $tx('slider_fieldAdd_txt', zoom);URL_upd()"> add to field each <i id='slider_fieldAdd_txt'></i> turn<br>
 </fieldset>
 
 </div>
+
+
+<div class="hor">
+<fieldset style="background-color: #acacac;">
+<legend>
+
+<div class="w3-bar w3-black">
+<span>**</span>
+<button onclick="bNoAudio=!bNoAudio; sw_AllowAudio(); URL_upd();" title='or click canvas'>𝄞 ♫ <b class=shortcut>A</b>udio  is OFF</button> 
+<button class="w3-bar-item w3-btn" onclick="fill_field_clear_all()">Fill field with pattern</button>
+<button class="w3-bar-item w3-btn" onclick="clear_AllArr()">clear all</button>
+
+
+</div>
+</legend>
+pattern:
+<br>
+<input id='slider_AudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value*1;$tx('slider_AudioFreqMul_txt',AudioFreqMul);URL_upd();"> <i id='slider_AudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
+
+</fieldset>
+
+</div>
+
+
 </div>
 
 <canvas id='canvas' class='viewport'></canvas>
@@ -582,9 +617,9 @@ var colorFill_iE=6;
 var colors= [ 'black', 'white', 'blue', 'red', 'green', 'yellow', 'purple', 'aqua', 'fuchsia', 'gray', 
 'lime', 'maroon', 'navy', 'olive', 'orange', 
 'silver', 'teal'];
-var colorsABC= ['aqua', 'black', 'blue', 'fuchsia', 'gray', 'green', 
+/*var colorsABC= ['aqua', 'black', 'blue', 'fuchsia', 'gray', 'green', 
 'lime', 'maroon', 'navy', 'olive', 'orange', 'purple', 'red', 
-'silver', 'teal', 'white', 'yellow'];
+'silver', 'teal', 'white', 'yellow'];*/
 var canvasFill_Click_pos_old=-1;
 function canvasFill_Click(e) {
 	let row=Math.floor(e.offsetX / boxSize)
@@ -629,19 +664,15 @@ function clear_AllArr()
 {
 	fill_field(0); clearAll();
 }
-
 function clearAll() //except field
 {
-	for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			//let pos=x*hh+y;
-			 arrHist[x][y] =0;
-			 arrVisits[x][y] =0;
-			 arrHistDir_E[x][y] =0;
-			 arrDir_last[x][y] =0;
-			 arrHistDirAbs[x][y] =0;
-			 arrHist_rotSpeed[x][y] =0;
-			}
+	for(let i=0;i<wh;i++){
+			 arrHist[i] =0;
+			 arrVisits[i] =0;
+			 arrHistDir_E[i] =0;
+			 arrDir_last[i] =0;
+			 arrHistDirAbs[i] =0;
+			 arrHist_rotSpeed[i] =0;
 	}
 }
 </script>
@@ -900,8 +931,8 @@ let floatTextures = gl.getExtension('OES_texture_float'); if (!floatTextures) { 
 //,OES_texture_half_float //16b  
 
 //=============================================
-//texArr=new Uint8Array(ww*hh)
-texArr=new Float32Array(ww*hh)
+//texArr=new Uint8Array(wh)
+texArr=new Float32Array(wh)
 
 var dt_avg=10, dtAnt=20, dtDraw=20;
 var bStop=true; //initial is stopped, because of need click to init audio
@@ -925,7 +956,7 @@ timestamp_t+=h_incr*h_incr_mul;
 		 //bStop=true; //single step mode press btn //sleep(500)
 		}
 	}
-	
+
 	var tA=window.performance.now();
 
 /*
@@ -945,12 +976,12 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		h_incr_mul=0;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
-			let pos=x*hh+y;
-			let value = field[pos];
+			//let pos=x*hh+y;
+			let value = field[n];
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]!=0) continue;
 			
-			texArr[y*ww+x] = value;
+			texArr[n] = value;
 		}
 		}
 		break;
@@ -960,10 +991,10 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		h_incr_mul=10;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
-			let value = arrHist[x][y]
+			let value = arrHist[n]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			
-			texArr[y*ww+x] = value;
+			texArr[n] = value;
 		}
 		}
 		break;
@@ -972,11 +1003,11 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		h_incr_mul=1;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
-			let value = arrVisits[x][y]
+			let value = arrVisits[n]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;
 			
-			texArr[y*ww+x] = value;
+			texArr[n] = value;
 			
 		}
 		}
@@ -989,11 +1020,11 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		h_incr_mul=1;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
-			let value = arrDir_last[x][y]
+			let value = arrDir_last[n]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;
 			
-			texArr[y*ww+x] = value;
+			texArr[n] = value;
 			
 		}
 		}
@@ -1004,11 +1035,11 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		h_incr_mul=1;
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
-			let value = arrHistDir_E[x][y]
+			let value = arrHistDir_E[n]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;
 			
-			texArr[y*ww+x] = value;
+			texArr[n] = value;
 			
 		}
 		}
@@ -1019,11 +1050,11 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		h_incr_mul=1;	
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
-			let value = arrHistDirAbs[x][y]
+			let value = arrHistDirAbs[n]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;
 			
-			texArr[y*ww+x] = value;
+			texArr[n] = value;
 			
 		}
 		}
@@ -1034,11 +1065,11 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		h_incr_mul=0; //TODO but change with slider
 		for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
-			let value = arrHist_rotSpeed[x][y]
+			let value = arrHist_rotSpeed[n]
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]==0) continue;
 			
-			texArr[y*ww+x] = value;
+			texArr[n] = value;
 			
 		}
 		}

@@ -13,6 +13,41 @@ RL:function(o,pos)
 		case 255: field[pos]=0; o.dirAbs--; o.rotSpeed-=4; if (o.dir == 0) o.dir = 3; else o.dir--; break;
 	}
 }
+
+
+,
+RL_on_arrHist:function(o,pos)
+{
+	switch (arrHist[pos]%2)
+	{
+		case 0: field[pos]=255; o.dirAbs++; o.rotSpeed+=4; if (o.dir == 3) o.dir = 0; else o.dir++; break;
+		default:
+		case 255: field[pos]=0; o.dirAbs--; o.rotSpeed-=4; if (o.dir == 0) o.dir = 3; else o.dir--; break;
+	}
+},
+RL_on_arrVisits:function(o,pos)
+{
+	switch (arrHist[pos]%2)
+	{
+		case 0: field[pos]=255; o.dirAbs++; o.rotSpeed+=4; if (o.dir == 3) o.dir = 0; else o.dir++; break;
+		default:
+		case 255: field[pos]=0; o.dirAbs--; o.rotSpeed-=4; if (o.dir == 0) o.dir = 3; else o.dir--; break;
+	}
+},
+RL_on_arrVisits1:function(o,pos)
+{
+		if(arrHist[pos]%256<128)
+		{
+			field[pos]=255; o.dirAbs++; o.rotSpeed+=4; if (o.dir == 3) o.dir = 0; else o.dir++;
+		}
+		else
+		{
+			field[pos]=0; o.dirAbs--; o.rotSpeed-=4; if (o.dir == 0) o.dir = 3; else o.dir--;
+		}
+}
+
+
+
 , Run1:function(o,pos)
 {
 	switch (field[pos])
@@ -232,7 +267,7 @@ RL:function(o,pos)
 	},
 	RL_hist:function(o,pos)
 	{
-		if (arrVisits[o.x][o.y]%2==0) r(o);
+		if (arrVisits[pos]%2==0) r(o);
 		else l(o);
 
 	}
@@ -243,7 +278,7 @@ antFF_f=  //float calc for ant_f
 {
 	RL:function(o,pos)
 	{
-		if (arrVisits[o.x][o.y]%2==0) r(o);
+		if (arrVisits[pos]%2==0) r(o);
 		else l();
 		
 		/*
@@ -307,7 +342,8 @@ var ant = {
 				//var c=buffer32[this.y*dataSize+this.x] >> 16&255; //R
 				let pos=this.x*hh+this.y;
 				
-				this.antFunc(this, pos);
+				//this.antFunc(this, pos);
+				this.antFunc(this, pos);//#opt
 				/*
 				switch (field[pos])
 				{
@@ -318,20 +354,20 @@ var ant = {
 				*/
 				
 				//----------visual
-				arrHist[this.x][this.y]=this.step_i;
-				arrVisits[this.x][this.y]++;
+				arrHist[pos]=this.step_i;
+				arrVisits[pos]++;
 				
 				
-				arrDir_last[this.x][this.y]=this.dir;
-				arrHistDir_E[this.x][this.y]+=this.dir;
-				arrHistDirAbs[this.x][this.y]=this.dirAbs;
+				arrDir_last[pos]=this.dir;
+				arrHistDir_E[pos]+=this.dir;
+				arrHistDirAbs[pos]=this.dirAbs;
 				
 				if(this.rotSpeed>0)this.rotSpeed-=0.2;
 				else
 				if(this.rotSpeed<0)this.rotSpeed+=0.2;
 				this.rotSpeed*=0.999; //this averages and lead to trails as on rotSpeed.png //opt every 10
 				//this.rotSpeed*=0.95; 
-				arrHist_rotSpeed[this.x][this.y]=this.rotSpeed;
+				arrHist_rotSpeed[pos]=this.rotSpeed;
 				
 				this.step_i++;
 				//----------
@@ -410,20 +446,20 @@ var ant_fdir = {
 				
 				
 				//----------visual
-				arrHist[this.x][this.y]=this.step_i;
-				arrVisits[this.x][this.y]++;
+				arrHist[pos]=this.step_i;
+				arrVisits[pos]++;
 				
 				
-				arrDir_last[this.x][this.y]=this.dir;
-				arrHistDir_E[this.x][this.y]+=this.dir;
-				arrHistDirAbs[this.x][this.y]=this.dirAbs;
+				arrDir_last[pos]=this.dir;
+				arrHistDir_E[pos]+=this.dir;
+				arrHistDirAbs[pos]=this.dirAbs;
 				
 				if(this.rotSpeed>0)this.rotSpeed-=0.2;
 				else
 				if(this.rotSpeed<0)this.rotSpeed+=0.2;
 				//this.rotSpeed*=0.999; //this averages and lead to trails as on rotSpeed.png //opt every 10
 				this.rotSpeed*=0.95; 
-				arrHist_rotSpeed[this.x][this.y]=this.rotSpeed;
+				arrHist_rotSpeed[pos]=this.rotSpeed;
 				
 				this.step_i++;
 				//----------

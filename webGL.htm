@@ -40,6 +40,8 @@ var viewCenterY=0;
 var stt={};
 function createTemp_settings()
 {
+ stt.w=ww;
+ stt.h=hh;
  stt.h_incr=h_incr.toFixed(6);
  stt.h_mul=h_mul;
  stt.h_k1=h_k1.toFixed(2);
@@ -49,9 +51,8 @@ function createTemp_settings()
  stt.showArr=showArr;
  stt.speed=speed;
  stt.AudioFreqMul=AudioFreqMul.toFixed(3);
- stt.viewCenterX=viewCenterX;
- stt.viewCenterY=viewCenterY;
- //TODO save/load position
+ stt.viewCenterX=viewCenterX.toFixed(4);
+ stt.viewCenterY=viewCenterY.toFixed(4);
  return stt;
 }
 function paramsToObject_and_Global(entries) {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
@@ -129,14 +130,14 @@ dataSize=hh//! legasy
 	}
 	*/
 
- arrHist = new Uint8Array(wh);
- arrVisits = new Uint8Array(wh);
+ arrHist = new Uint32Array(wh);
+ arrVisits = new Uint32Array(wh);
 
- arrHistDir_E = new Uint8Array(wh);
+ arrHistDir_E = new Uint32Array(wh);
  arrDir_last = new Uint8Array(wh);
  arrHistDirAbs = new Uint8Array(wh);
 
- arrHist_rotSpeed = new Uint8Array(wh);
+ arrHist_rotSpeed = new Uint32Array(wh);
 
 //field.fill(4, 1, 3); //val, start, end
 
@@ -715,6 +716,8 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 			viewCenterY=(lastY-dragStart[1])/canvasView.height*zoom+dragEnd_dY;	//console.log(viewCenterX,viewCenterY)
 		}
 				//console.log(lastX,lastY)
+				if(il%16==0)	URL_upd();
+				//#fix position glitch on first down 
 	},false);
 	canvasView.addEventListener('mouseup',function(evt){
 		dragStart = null;
@@ -724,6 +727,7 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 			dragEnd_dX=viewCenterX;
 			dragEnd_dY=viewCenterY;
 			//console.log(dragEnd_dX,dragEnd_dY)
+			URL_upd();
 		}
 	},false);
 
@@ -974,105 +978,61 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		case 'field':
 		h_mul_mul=0.0000005;
 		h_incr_mul=0;
-		for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
+		//for(let y=0, n=0;y<hh;y++){
+		//for(let x=0;x<ww;x++,n++) {
 			//let pos=x*hh+y;
-			let value = field[n];
+		//	let value = field[n];
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]!=0) continue;
 			
-			texArr[n] = value;
-		}
+		//	texArr[n] = value;
+		//}
+		//}
+		for(let i=0;i<wh;i++){
+			texArr[i] = field[i];
+			//if(arrVisits[i]==0){texArr[i] = field[i];} //only first
 		}
 		break;
 		
 		case 'arrHist':
 		h_mul_mul=0.0000001;
 		h_incr_mul=10;
-		for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			let value = arrHist[n]
-			//if(value==0&&buffer32[n]==0) continue; //skip unused
-			
-			texArr[n] = value;
-		}
-		}
+		for(let i=0;i<wh;i++)
+			texArr[i] = arrHist[i];
 		break;
 		case 'arrVisits':
 		h_mul_mul=0.000003;
 		h_incr_mul=1;
-		for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			let value = arrVisits[n]
-			//if(value==0&&buffer32[n]==0) continue; //skip unused
-			//if(value!=0&& buffer32[n]==0) continue;
-			
-			texArr[n] = value;
-			
-		}
-		}
+		for(let i=0;i<wh;i++)
+			texArr[i] = arrVisits[i];
 		break;
-
-
 
 		case 'arrDir_last':
 		h_mul_mul=0.01; //!!
 		h_incr_mul=1;
-		for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			let value = arrDir_last[n]
-			//if(value==0&&buffer32[n]==0) continue; //skip unused
-			//if(value!=0&& buffer32[n]==0) continue;
-			
-			texArr[n] = value;
-			
-		}
-		}
+		for(let i=0;i<wh;i++)
+			texArr[i] = arrDir_last[i];
 		break;
 		
 		case 'arrHistDir_E':
 		h_mul_mul=0.00005;
 		h_incr_mul=1;
-		for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			let value = arrHistDir_E[n]
-			//if(value==0&&buffer32[n]==0) continue; //skip unused
-			//if(value!=0&& buffer32[n]==0) continue;
-			
-			texArr[n] = value;
-			
-		}
-		}
+		for(let i=0;i<wh;i++)
+			texArr[i] = arrHistDir_E[i];
 		break;
 		
 		case 'arrHistDirAbs':
 		h_mul_mul=0.00001;
 		h_incr_mul=1;	
-		for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			let value = arrHistDirAbs[n]
-			//if(value==0&&buffer32[n]==0) continue; //skip unused
-			//if(value!=0&& buffer32[n]==0) continue;
-			
-			texArr[n] = value;
-			
-		}
-		}
+		for(let i=0;i<wh;i++)
+			texArr[i] = arrHistDirAbs[i];		
 		break;
 		
 		case 'arrHist_rotSpeed':
 		h_mul_mul=0.00001;
 		h_incr_mul=0; //TODO but change with slider
-		for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			let value = arrHist_rotSpeed[n]
-			//if(value==0&&buffer32[n]==0) continue; //skip unused
-			//if(value!=0&& buffer32[n]==0) continue;
-			
-			texArr[n] = value;
-			
-		}
-		}
+		for(let i=0;i<wh;i++)
+			texArr[i] = arrHist_rotSpeed[i];
 		break;
 	}
 
@@ -1195,7 +1155,7 @@ function swStartStop(b) //true to start.	undefined to toggle
 	var context;
 	var freq_avg=0;
 
-	canvas.onclick=sw_AllowAudio	//document.onclick=sw_Audio
+	//canvas.onclick=sw_AllowAudio	//document.onclick=sw_Audio
 var binit_Audio=false;
 function init_Audio(){
 	if(bNoAudio==true) return;
@@ -1254,7 +1214,6 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
 //##const osc = new Tone.Oscillator(440, "sine").toDestination()
 //===========================================
 
-
  // look up where the vertex data needs to go.
   const positionLocation = gl.getAttribLocation(programInfo.program, "a_position");
   const texcoordLocation = gl.getAttribLocation(programInfo.program, "a_texCoord");
@@ -1278,8 +1237,6 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
 	  1.0,  0.0,
 	  1.0,  1.0,
   ]), gl.STATIC_DRAW);
-
-
 
   // Upload the image into the texture.
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -1333,7 +1290,6 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
   const view_centerId = gl.getUniformLocation(programInfo.program, 'view_center');
 
 
-
 function textureFromPixelArray(gl, dataArray, type, width, height) { //from arr, from  image https://stackoverflow.com/questions/9046643/webgl-create-texture
 	var dataTypedArray = new Uint8Array(dataArray); // Don't need to do this if the data is already in a typed array
 	var texture = gl.createTexture();
@@ -1375,8 +1331,6 @@ function setRectangle(gl, x, y, width, height) {
   ]), gl.STATIC_DRAW);
 }
 </script>
-
-
 
 </body>
 </html>

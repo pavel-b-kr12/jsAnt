@@ -325,6 +325,7 @@ var ant = {
 			yt:0,
 			//dxy:0 //speed on this segment
 			step_i:0,
+			step_i_real:0,//need because step_i can be modifyed //TODO think about change behaviour not to modify main value
 			speed:0,
 			dirAbs : 0,
 			rotSpeed : 0,
@@ -340,7 +341,7 @@ var ant = {
 				}
 
 				//var c=buffer32[this.y*dataSize+this.x] >> 16&255; //R
-				let pos=this.x*hh+this.y;
+				let pos=this.y*ww+this.x;
 				
 				//this.antFunc(this, pos);
 				this.antFunc(this, pos);//#opt
@@ -354,7 +355,30 @@ var ant = {
 				*/
 				
 				//----------visual
+				
+				if(bhistory_continue)
+				{
+					if(arrHist[pos]!=0)
+					{
+						//if(this.step_i>4096) this.step_i=0;
+						//this.step_i=(arrHist[pos]+this.step_i)/2;
+					    this.step_i=arrHist[pos];
+					}
+				}
+				else
+				{
+					if(bhistory_avg)
+					{
+						//if(arrHist[pos]!=0)
+						{
+							//if(this.step_i>4096) this.step_i=0;
+							this.step_i=(arrHist[pos]+this.step_i)/2;
+							//this.step_i=arrHist[pos];
+						}
+					}
+				}
 				arrHist[pos]=this.step_i;
+			
 				arrVisits[pos]++;
 				
 				
@@ -370,6 +394,7 @@ var ant = {
 				arrHist_rotSpeed[pos]=this.rotSpeed;
 				
 				this.step_i++;
+				this.step_i_real++;
 				//----------
 			}
 		}
@@ -528,6 +553,7 @@ var ant_f = {
 				
 
 				//----------visual
+				
 				arrHist[x][y]=this.step_i;
 				arrVisits[x][y]++;
 				

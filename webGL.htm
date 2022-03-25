@@ -3,11 +3,22 @@
 <head>
 <meta charset="utf-8">
 <title></title>
-<script type="text/javascript" src="lib/d3.v5.min.js"></script>
+<script type="text/javascript" src="lib/dat.gui.min.js"></script>
 <script src="lib/webgl-utils.js"></script>
 
 <script src="common.js"></script> 
+<script src="keyboard.js" defer></script> 
 <script> //settings
+/*
+TODO
+precission sliders
+zoom fix  is 1 on reload
+field no draw after return
+
+2
+negative speed
+*/
+
 /*
 stt=
 {
@@ -16,43 +27,61 @@ stt=
  h_k1:2/3, //hue rainbow colors positions
  h_k2:1/3,
  zoom:1,
- bNoAudio:false, //false true //do not init audio at start, but only after click Audio btn
+ bAudioOFF:false, //false true //do not init audio at start, but only after click Audio btn
  showArr:'field',
  speed:100,  //TODO slow speed less than fps //TODO move to HTML
  AudioFreqMul:1, 
 //TODO Audio volume
- viewCenterX:0,
- viewCenterY:0
+ xx:0,
+ yy:0
 }
 */
 var h_incr=0.001; //dt
 var h_mul=1800;
+var h_k0=0;
 var h_k1=2/3; //hue rainbow colors positions
 var h_k2=1/3;
+var h_k3=3;
+var h_k4=6;
+var h_k5=0;
+var h_k6=1;
 var zoom=1;
-var bNoAudio=false; //false true //do not init audio at start, but only after click Audio btn
+var bAudioOFF=false; //false true //do not init audio at start, but only after click Audio btn
 var showArr='field';
 var speed=100;  //TODO slow speed less than fps //TODO move to HTML
 var AudioFreqMul=1.01; 
 //TODO Audio volume
-var viewCenterX=0;
-var viewCenterY=0;
+var xx=0;
+var yy=0;
+var bhistory_continue=false; //##TODO single switch option as it can only be 1
+var bhistory_avg=false;
+var del_field_if_step_i=0;
+
 var stt={};
+
 function createTemp_settings()
 {
  stt.w=ww;
  stt.h=hh;
  stt.h_incr=h_incr.toFixed(6);
  stt.h_mul=h_mul;
+ stt.h_k0=h_k0.toFixed(2);
  stt.h_k1=h_k1.toFixed(2);
  stt.h_k2=h_k2.toFixed(2);
+ stt.h_k3=h_k3.toFixed(2);
+ stt.h_k4=h_k4.toFixed(2);
+ stt.h_k5=h_k5.toFixed(2);
+ stt.h_k6=h_k6.toFixed(2);
  stt.zoom=zoom.toFixed(3);
- stt.bNoAudio=bNoAudio;
+ stt.bAudioOFF=bAudioOFF;
  stt.showArr=showArr;
  stt.speed=speed;
  stt.AudioFreqMul=AudioFreqMul.toFixed(3);
- stt.viewCenterX=viewCenterX.toFixed(4);
- stt.viewCenterY=viewCenterY.toFixed(4);
+ stt.xx=xx.toFixed(4);
+ stt.yy=yy.toFixed(4);
+ stt.bhistory_continue=bhistory_continue;
+ stt.bhistory_avg=bhistory_avg;
+ stt.del_field_if_step_i=del_field_if_step_i;
  return stt;
 }
 function paramsToObject_and_Global(entries) {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
@@ -69,27 +98,34 @@ function paramsToObject_and_Global(entries) {//https://stackoverflow.com/questio
 function settingsFromURL()
 {
  stt=paramsToObject_and_Global(new URLSearchParams(window.location.search));
+ bAudioOFF_updView();
 }
 function URL_upd() //TODO ant type, antF, colorF, pattern
 {
  let url_str=new URLSearchParams(createTemp_settings()).toString();//https://stackoverflow.com/questions/6566456/how-to-serialize-an-object-into-a-list-of-url-query-parameters
+ url_str=url_str.replace('\&bAudioOFF=false','');//del default values
+ url_str=url_str.replace('\&bhistory_continue=false','');
+ url_str=url_str.replace('\&bhistory_avg=false','');
+ url_str=url_str.replace('\&del_field_if_step_i=0','');
  let ar=window.location.pathname.split('/');
  history.replaceState(null, null, ar[ar.length-1]+'?'+url_str); 
  //history.replaceState({}, null, 'webGL.htm?'+url_str);//TODO  move zoom do not upd pushState() immediately but after some timer to prevent flood of history  OR replace history replaceState()
-  //w=${ww}&h=${hh}&h_incr=${h_incr.toFixed(6)}&h_mul=${h_mul}&h_k1=${h_k1.toFixed(2)}&h_k2=${h_k2.toFixed(2)}
-  //&zoom=${zoom.toFixed(3)}&show=${showArrSortcuts_vk[showArr]}&speed=${speed}&xc=${viewCenterX}&yc=${viewCenterY}&afm=${AudioFreqMul.toFixed(3)}&a=${bNoAudio}
-
 } //https://stackoverflow.com/questions/824349/how-do-i-modify-the-url-without-reloading-the-page
 
 var wh;
+var xc=-1,yc=-1;
+var bStop=true;
+var fieldAdd=0;
+var bAudioGen=false;
+
 function resetwh()
 {
-	settingsFromURL()
+	settingsFromURL();
 	//
 	//if(window.innerHeigh!==undefined)
 	//{
 	//h=window.innerHeigh>1200 ?1024:512; //console.log(window.innerHeigh, 'set hh:', hh);
-	//w=window.innerWidth>1100 ?1024:512; //!TODO. this can be done afterpage load
+	//w=window.innerWidth>1100 ?1024:512; //!TODO. this can be done after page load
 	//}
 	//else //TODO check url first
 	{ //url ?w=32&h=512
@@ -106,38 +142,32 @@ function resetwh()
 	}
 	hh = h==null?1024:h;
 	ww = w==null?1024:w;
-	console.log('set w,h, arrays to: ', ww,hh);
+	//console.log('set w,h, arrays and canvas to: ', ww,hh);
 
  wh=ww*hh;
  xc=ww/2;
  yc=hh/2;
  xM=ww-1;
  yM=hh-1;
+ 
+ canvas.width=ww;
+ canvas.height=hh;
 
-chartSize=hh; //! legasy
-dataSize=hh//! legasy
-
-
- field = new Uint8Array(wh);
- //2D array [x][y] tested as slower https://stackoverflow.com/questions/1242705/performance-of-2-dimensional-array-vs-1-dimensional-array
+ field = new Uint8Array(wh); //2D array [x][y] tested as slower https://stackoverflow.com/questions/1242705/performance-of-2-dimensional-array-vs-1-dimensional-array
  field_f= new Float32Array(wh); //for ant_f
-// field = d3.range(dataSize).map(function(d, i){return d3.range(dataSize).map(function(d, i){return 0;});});//return ~~(i%2*255); //d3 way became to faster working aray 10-15%. d3.v5>v3 also Opera>>Chromium>>FF
-/* //this is slower than D3 in LOOP 8M iterations =140ms vs 122ms @d3
- field = new Array(dataSize);
- for (let i=0; i<dataSize; ++i) {
-	field[i] = new Uint8Array(dataSize);
-		 for (let j=0; j<dataSize; ++j) {			 field[i][j]=0;		 }
-	}
-	*/
 
- arrHist = new Uint32Array(wh);
- arrVisits = new Uint32Array(wh);
+ arrHist = new Uint32Array(wh); //step number
+ arrVisits = new Uint32Array(wh); //count
 
- arrHistDir_E = new Uint32Array(wh);
- arrDir_last = new Uint8Array(wh);
- arrHistDirAbs = new Uint8Array(wh);
+ arrHistDir_E = new Uint32Array(wh); // +=this.dir;
+ arrDir_last = new Uint8Array(wh);  // =this.dir;
+ arrHistDirAbs = new Uint8Array(wh); // not overflowed by %4 (or %8)
 
  arrHist_rotSpeed = new Uint32Array(wh);
+ 
+ 
+ texArr=new Float32Array(wh); //Uint8Array
+
 
 //field.fill(4, 1, 3); //val, start, end
 
@@ -146,26 +176,52 @@ dataSize=hh//! legasy
 
 //TODO filled area per t, 	end point distance per t
 }
-resetwh();
 </script>
 <script src="ant.js"></script>
 <style>
 .pa {color: red;}
-.viewport {position: absolute;}
+/*.viewport {position: absolute;}*/
 .abs {position: absolute; }
 .shortcut{
 	text-decoration: underline; 
 	background-color: #ffeecc;
 	text-transform: capitalize;/* affect innerText, but not .textContent */
 }
-.horContainer { display: flex;}
+.horContainer { display: flex;
+    flex-wrap: wrap;
+}
+
+body{
+ background-color: #fbefff;
+}
+
 #inf{width: 280px;}
 fieldset {
-	background-color: #eeeeee;
+	background-color: #fffbb9;
+	/*width: min-content;*/
+}
+
+.flex{
+ display: flex;
+}
+.buttons_panel{
+    /*display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    flex-wrap: wrap;*/
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+}
+
+fieldset.off {
+	background-color: #333351;
 }
 
 legend {
-	background-color: #bdbcbc;
+	background-color: #bdbcbcad;
 
 	/*color: white;*/
 	/*border: aqua; 7efcff;*/
@@ -250,41 +306,64 @@ antrotSpeed <i id='antrotSpeed'></i><br>
 frame_i <i id='il'></i><br>
 dH/dStep <i id='dHdStep'></i><br>
 dH/dFrame_i <i id='dHdFrame_i'></i><br>
-
 AudioFreq of selected <i id='AudioFreq'></i><br>
+</div>
 
+
+<div class="hor buttons_panel footer">
 <button onclick="$('canvas').requestFullscreen();">Fullscreen canvas</button>
-<br>
-<button onclick="window.location.replace(window.location.pathname)">reload empty</button> 
+<button onclick="window.location.replace(window.location.pathname)">reload empty settings</button> 
+<button onclick="window.location.replace(window.location.pathname+'?w=1024&h=1024')">reload empty 1024*1024</button>
+<button onclick="ww=1024;hh=1024;URL_upd();window.location.reload()">1024*1024</button>
+<button onclick="ww=2048;hh=2048;URL_upd();window.location.reload()">2048*2048</button>
+<button onclick="ww=2048;hh=2048;URL_upd();window.location.reload()">4096*4096</button>
+<button onclick="ww=1024;hh=64;URL_upd();window.location.reload()">1024*64</button>
+<button onclick="ww=1024;hh=32;URL_upd();window.location.reload()">1024*32</button>
+<button onclick="ww=1024;hh=8;URL_upd();window.location.reload()">1024*8</button>
+<button onclick="ww=1980;hh=1080;URL_upd();window.location.reload()">1980*1080 **wrap disabled: NPOT texure size</button>
+<button onclick="ww=2560;hh=1440;URL_upd();window.location.reload()">2560*1440 **</button>
 </div>
 
 
 <div class="hor">
-<button id='stop_sw'  onclick="swStartStop()">start<p class='pa'>To start Click! or press ` 1....9 (speed)</p></button> <!--TODO dont start audio if stopped manually -->
+<button id='stop_sw' onclick="swStartStop()">start<p class='pa'>To start Click! or press ` 1....9 (speed)</p></button>
+<button onclick="record(canvas,5000);">REC</button>
+
+<fieldset>
+<legend style="border: 1px solid;">
+<span class='label'>Display</span>
+</legend>
 <br>
 To view arrays of fieds press keyboard:<br>
-<button class='shrtcutBtn' title='f'>field</button> 
-<button class='shrtcutBtn' title='h'>arrHist</button> 
-<button class='shrtcutBtn' title='v'>arrVisits</button> 
-<button class='shrtcutBtn' title='d'>arrDir_last</button> 
-<button class='shrtcutBtn' title='e'>arrHistDir_E</button> 
-<button class='shrtcutBtn' title='r'>arrHistDirAbs</button> 
-<button class='shrtcutBtn' title='s'>arrHist_rotSpeed</button> 
+<button name='show_arr' class='shrtcutBtn grA' tag='f' title='f'>field</button> 
+<button name='show_arr' class='shrtcutBtn grA' tag='h' title='step number'>arrHist</button> 
+<input id='sw_history_continue_mode' type="checkbox" oninput="bhistory_continue=checked;URL_upd()"> continue history from arr 
+<input id='sw_history_avg_mode' type="checkbox" oninput="bhistory_avg=checked;URL_upd()"> average history from arr<br>
+<button name='show_arr' class='shrtcutBtn grA' tag='v' title='count'>arrVisits</button> 
+<button name='show_arr' class='shrtcutBtn grA' tag='d'title='+=this.dir'>arrDir_last</button> 
+<button name='show_arr' class='shrtcutBtn grA' tag='e'title='=this.dir'>arrHistDir_E</button> 
+<button name='show_arr' class='shrtcutBtn grA' tag='r'title='not overflowed by %4 (or %8)'>arrHistDirAbs</button> 
+<button name='show_arr' class='shrtcutBtn grA' tag='s'title='s'>arrHist_rotSpeed</button> 
 <br>
-<input id='slider_speed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('slider_speed_txt',speed);URL_upd();"> <i id='slider_speed_txt'>sim </i> speed ops/Frame<br><!-- TODO2 negative speed -->
+<input id='slider_del_field_if_step_i' type="range" min="0" max="128" value="0" oninput="del_field_if_step_i=value*1000; $tx('slider_del_field_txt', value);URL_upd();"> <i id='slider_del_field_txt'></i>k, delete field if step is older
+<br>
+<input id='slider_speed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('slider_speed_txt',speed);URL_upd();"> <i id='slider_speed_txt'>sim </i> speed ops/Frame<br>
 
-<input id='slider_h_incr' type="range" min="1" max="200" value="1" oninput="h_incr=Math.pow(value*0.001,2); $tx('slider_h_incr_txt', h_incr.toFixed(6));URL_upd();"> <i id='slider_h_incr_txt'></i> h_incr<br>
+<input id='slider_h_incr' type="range" min="0" max="200" value="1" oninput="h_incr=Math.pow(value*0.001,2); $tx('slider_h_incr_txt', h_incr.toFixed(6));URL_upd();"> <i id='slider_h_incr_txt'></i> h_incr<br>
 <input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8)); URL_upd();"> <i id='slider_h_mul_txt'></i> h_mul<br>
-<input id='slider_h_k1' type="range" min="1" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1);URL_upd()"> <i id='slider_h_k1_txt'></i> h_k1<br>
-<input id='slider_h_k2' type="range" min="1" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2);URL_upd()"> <i id='slider_h_k2_txt'></i> h_k2<br>
-<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom);URL_upd()"> <i id='slider_zoom_txt'></i> zoom (bettter use mouse)<br>
-AudioFunc: TODO
- <!-- 216 speed ops/Frame -->
- <!-- 9 rAudioFreq Multiplyer -->
- <!-- 0.000289 h_incr -->
- <!-- 0.000036 h_mul -->
+<input id='slider_h_k0' type="range" min="-50" max="200" value="100" oninput="h_k0=value/100;$tx('slider_h_k0_txt', h_k0);URL_upd()"> <i id='slider_h_k0_txt'></i> h_k0 ? 1<br>
+<input id='slider_h_k1' type="range" min="-50" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1);URL_upd()"> <i id='slider_h_k1_txt'></i> h_k1 ? 2/3<br>
+<input id='slider_h_k2' type="range" min="-50" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2);URL_upd()"> <i id='slider_h_k2_txt'></i> h_k2 ? 1/3<br>
+<input id='slider_h_k3' type="range" min="-50" max="500" value="300" oninput="h_k3=value/100;$tx('slider_h_k3_txt', h_k3);URL_upd()"> <i id='slider_h_k3_txt'></i> h_k3 ? 3<br>
+<input id='slider_h_k4' type="range" min="-200" max="1900" value="600" oninput="h_k4=value/100;$tx('slider_h_k4_txt', h_k4);URL_upd()"> <i id='slider_h_k4_txt'></i> h_k4 mul<br>
+<input id='slider_h_k5' type="range" min="0" max="100" value="0" oninput="h_k5=value/100;$tx('slider_h_k5_txt', h_k5);URL_upd()"> <i id='slider_h_k5_txt'></i> h_k5 black point<br>
+<input id='slider_h_k6' type="range" min="10" max="100" value="100" oninput="h_k6=value/100;$tx('slider_h_k6_txt', h_k6);URL_upd()"> <i id='slider_h_k6_txt'></i> h_k6 light<br>
 
+<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom);URL_upd()" title='If dont move - see browser console for fix'> <i id='slider_zoom_txt'></i> zoom (bettter use mouse).<br>
+</fieldset>
 </div>
+
+
 <div class="hor">
 <fieldset>
 <legend style="border: 1px solid; width:500px;">
@@ -346,147 +425,106 @@ function ySub_set(v, bSetRangeValue){
 </fieldset>
 </div>
 
-<div class="hor">
-<fieldset style="background-color: #acacac;">
-<legend>
-<div class="w3-bar w3-black">
-<button class="w3-bar-item w3-btn" onclick="fill_field_clear_all()">Fill field with pattern</button>
-<button class="w3-bar-item w3-btn" onclick="clear_AllArr()">clear all</button>
-</div>
-</legend>
-pattern:
-<br>
-<input id='canvasFill_wE' type="range" min="1" max="8" value="2" oninput="canvasFill_wE=this.value;drawBox(); $tx('canvasFill_wE_txt', canvasFill_wE)"><i id='canvasFill_wE_txt'></i> w  
-<input id='canvasFill_hE' type="range" min="1" max="8" value="2" oninput="canvasFill_hE=this.value;drawBox(); $tx('canvasFill_hE_txt', canvasFill_hE)"><i id='canvasFill_hE_txt'></i> h<br>
-TODO color to be same as in shader, same as in ant function<br>
-
-<canvas id="canvasFill" width="140px" height="140px"></canvas>
-
-<input id='slider_fieldAdd' type="range" min="2" max="64" value="8" oninput="fieldAdd=value; $tx('slider_fieldAdd_txt', zoom);URL_upd()"> add to field each <i id='slider_fieldAdd_txt'></i> turn<br>
-</fieldset>
-
-</div>
-
 
 <div class="hor">
-<fieldset style="background-color: #acacac;">
+<fieldset id='audio_panel'>
 <legend>
-
 <div class="w3-bar w3-black">
 <span>**</span>
-<button onclick="bNoAudio=!bNoAudio; sw_AllowAudio(); URL_upd();" title='or click canvas'>𝄞 ♫ <b class=shortcut>A</b>udio  is OFF</button> 
-<button class="w3-bar-item w3-btn" onclick="fill_field_clear_all()">Fill field with pattern</button>
-<button class="w3-bar-item w3-btn" onclick="clear_AllArr()">clear all</button>
-
+<button onclick="sw_bAudioOFF(); URL_upd();" tag='a' title='or click canvas'>𝄞 ♫ <b class=shortcut>A</b>udio</button> 
+<!-- <button class="w3-bar-item w3-btn" onclick="fill_field_clear_all()">Fill field with pattern</button> -->
+<!-- <button class="w3-bar-item w3-btn" onclick="clear_AllArr()">clear all</button> -->
 
 </div>
 </legend>
-pattern:
-<br>
+fix disable when stop<br>
+AudioFunc: ##TODO<br>
+from hist<br>
 <input id='slider_AudioFreqMul' type="range" min="1" max="100" value="1" oninput="AudioFreqMul=this.value*1;$tx('slider_AudioFreqMul_txt',AudioFreqMul);URL_upd();"> <i id='slider_AudioFreqMul_txt'></i> rAudioFreq Multiplyer<br>
-
 </fieldset>
-
 </div>
 
 
+<div class="hor">
+<fieldset class='flex'>
+<legend>
+<div>
+<button onclick="fill_field_clear_all()" tag='x' ><b class=shortcut>X</b> Fill field with pattern</button>
+<button onclick="clear_AllArr()" tag='c' ><b class=shortcut>C</b>lear all</button>
+</div>
+</legend>
+<div>
+pattern:<br>
+<canvas id="canvasFill" width="140px" height="140px"></canvas>
+</div>
+<div>
+<input id='canvasFill_wE' type="range" min="1" max="8" value="2" oninput="canvasFill_wE=this.value;drawBox(); $tx('canvasFill_wE_txt', canvasFill_wE)"><i id='canvasFill_wE_txt'></i> w<br> 
+<input id='canvasFill_hE' type="range" min="1" max="8" value="2" oninput="canvasFill_hE=this.value;drawBox(); $tx('canvasFill_hE_txt', canvasFill_hE)"><i id='canvasFill_hE_txt'></i> h<br>
+TODO color to be same as in shader, same as in ant function<br>
+<input id='slider_fieldAdd' type="range" min="-32" max="64" value="0" oninput="fieldAdd=value; $tx('slider_fieldAdd_txt', value);URL_upd()"> add to field each <i id='slider_fieldAdd_txt'></i> turn. 0 is OFF<br>
+<input id='sw_bfieldAdd_lim' type="checkbox" oninput="bfieldAdd_lim=checked;URL_upd()"> only if field in range 0...255<br>
+</div>
+</fieldset>
 </div>
 
+
+<div class="hor">
 <canvas id='canvas' class='viewport'></canvas>
+</div>
 
-<script> //key
-var bWaitKeyUp=false;
-function setSpeed(v){
-	if(v==0){swStartStop(false);}
-	else
-	{
-		v=Math.pow(10,v-1);
-		if(speed==v) {swStartStop();}
-		else {speed=v;  if(bStop) swStartStop(true); }
-	}
-	if(Math.abs(speed)>10000000) speed=10000000;
-	$('slider_speed').value=Math.pow( speed, 0.333333);
-	$tx("slider_speed_txt",speed);	//console.log(speed);
-}
+</div>
 
-//var bMobile = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)
-document.body.onkeyup = function(e){
-	bWaitKeyUp=false;
-	if(e.keyCode == 32){$('stop_sw').click()}
-	else{
-	 //if(!bMobile)	$('btn_show_field').click() //show different maps only while pressing key
-	}
-}
 
-document.body.onkeydown = function(e){
-	if(bWaitKeyUp) return; //to make keys responce faster - function handle press but not up
-	bWaitKeyUp=true;
-	//console.log(e.key, e.keyCode, String.fromCharCode(e.keyCode)) //codes https://stackoverflow.com/questions/3781142/jquery-or-javascript-how-determine-if-shift-key-being-pressed-while-clicking-an
-	if( e.keyCode==46){fill_field_clear_all(); return; } //del
-	if( 
-	e.key==1 ||
-	e.key==2 ||
-	e.key==3 ||
-	e.key==4 ||
-	e.key==5 ||
-	e.key==6 ||
-	e.key==7 ||
-	e.key==8 ||
-	e.key==9
-	) setSpeed(e.key);
-	else
-	if( e.keyCode==192) setSpeed(0);//`
-	else
-	{
-		if(e.keyCode >= 65 && e.keyCode <= 90) 
-		{
-			sortcutPress(String.fromCharCode(e.keyCode).toLowerCase());
-		}
-	}
-}
-
-function sortcutPress(k){
-	//showArr=(showArrSortcuts[k]!==undefined)?showArrSortcuts[k]:'field'; //without btns
-	$('shrtcutBtn'+k).click();
-}
-var shrtcutBtn_last=null;
-function shrtcutBtn_click(e){
-	el=e.target;
-	if(el.tagName=='B')el=el.parentElement;
-	
-	if(el==shrtcutBtn_last) return;
-	
-	el.classList.toggle('shrtcutBtn_sel');
-	if(shrtcutBtn_last!=null) shrtcutBtn_last.classList.remove('shrtcutBtn_sel');
-	shrtcutBtn_last=el;
-	
-	showArr=el.textContent;	//console.log(e.target.innerText, e.target.textContent);
-}
-showArrSortcuts=[];//filled with tag titles 'f', 'h' ...
-showArrSortcuts_vk=[];//value:key to search keys
-</script>
 <script> //init
-
 window.onload=setup;
 function setup(){
+	resetwh();
+	setupWebGL();
+	addEvents_panZoom_ToCanvasView(canvas);
+	createGUI();
+//-------- ant
+
+	ant.antFunc=antFF.RL;
+	ant_f.antFunc=antFF_f.RL;
+	new_ant(ant) //start with integer ant as it simpler and easy to make good audio
+	//new_ant(ant_f)
 //-------- shrtcutBtn events
-	let ar=document.getElementsByClassName('shrtcutBtn');
+	let ar=document.getElementsByClassName('shrtcutBtn'); //### groups
 	for(let i=0;i<ar.length;i++)
 	{
-		let k=ar[i].title;
+		let k=ar[i].attributes.tag.value;
 		
 		ar[i].id='shrtcutBtn'+k;
 		ar[i].addEventListener('click', shrtcutBtn_click);
-		
 		let K=k.toUpperCase(); //k is lower case
 		let str=ar[i].innerText;
 		showArrSortcuts[k]=str;		showArrSortcuts_vk[str]=k;
 		ksearch=(str.indexOf(K)==-1)?k:K; //if no UpperCase - search lower 		//TODO if no any - add k to element
 		str=str.replace(ksearch, '<b class=shortcut>'+ksearch+'</b>'); //remain case. Show UpperCase via css if no UpperCase in string
+
 		ar[i].innerHTML=str;
 	}
 }
 
+function createGUI()
+{//##
+//var gui = new dat.GUI({ load: getPresetJSON(), preset: 'Preset1' });
+//var gui = new dat.GUI();
+
+//gui.remember(prop);
+//gui.remember(ant);
+
+/*
+var f1 = gui.addFolder('ant');
+f1.add(prop, 'antType',prop.antTypes);
+f1.add(prop, 'bInt',0,1);
+f1.add(prop, 'colorAdds0',-4.0,4.0).step(0.1); //!! checkbox int  //prop.bInt_?1:
+f1.add(prop, 'colorAdds1',-4.0,4.0).step(0.1);
+f1.add(prop, 'color_max',1,500).step(1);
+f1.add(prop, 'dirAdds0',-4.0,4.0).step(0.002);
+f1.add(prop, 'dirAdds1',-4.0,4.0).step(0.002);
+f1.open();*/
+}
 </script>
 <script>  //select function list
 new_sel=$('new_antFuncs');
@@ -496,6 +534,8 @@ new_sel.addEventListener('mouseleave', antFuncs_sel_off);
 function new_ant(o)
 {
  let a=Object.create(o);
+ a.x = xc; 
+ a.y = yc; 
  ants.push(a);
  ant_selected_set(a)
  if(ant_selected.bFloatDir) dirM=4;
@@ -504,10 +544,7 @@ function new_ant(o)
 }
 
 var ants=[];
-ant.antFunc=antFF.RL;
-ant_f.antFunc=antFF_f.RL;
-new_ant(ant) //start with integer ant as it simpler and easy to make good audio
-//new_ant(ant_f)
+
 
 antFF_nm_list=  Object.getOwnPropertyNames(antFF).filter(function (p) {
 	return typeof antFF[p] === 'function';
@@ -531,12 +568,12 @@ sel.addEventListener('mouseleave', antFuncs_sel_off);
 
 
 function antFuncs_sel_dropdown(e){
-	e.target.setAttribute('size',e.target.length)
-	e.target.style.zIndex=9;
+e.target.setAttribute('size',e.target.length)
+e.target.style.zIndex=9;
 }
 function antFuncs_sel_off(e){
-	e.target.removeAttribute('size')
-	e.target.style.zIndex=0;
+e.target.removeAttribute('size')
+e.target.style.zIndex=0;
 }
 
 function select_ant_sel_dropdown(e){
@@ -587,7 +624,7 @@ function del_selected_ant(){
 <script>//fill
 var canvasFill_wE=2,canvasFill_hE=2;
 canvasFil_patternlArrSizeM=8
-var canvasFil_patternlArr = d3.range(canvasFil_patternlArrSizeM).map(function(d, i){return d3.range(canvasFil_patternlArrSizeM).map(function(d, i){return 0;});});
+var canvasFil_patternlArr = new Uint8Array(canvasFil_patternlArrSizeM*canvasFil_patternlArrSizeM);
 
 var canvasFill = document.getElementById("canvasFill"),
 	canvasFill_ctx = canvasFill.getContext("2d"),
@@ -614,20 +651,19 @@ function drawBox() { //initial draw of empty grid
 	canvasFill_ctx.closePath();
 }
 var colorFill_i=0;
-var colorFill_iE=6;
+var colorFill_iE=6; //6 colors
 var colors= [ 'black', 'white', 'blue', 'red', 'green', 'yellow', 'purple', 'aqua', 'fuchsia', 'gray', 
 'lime', 'maroon', 'navy', 'olive', 'orange', 
-'silver', 'teal'];
+'silver', 'teal']; //this colors only for pattern box, as GL shader has defferent colorize options //TODO use same shader
 /*var colorsABC= ['aqua', 'black', 'blue', 'fuchsia', 'gray', 'green', 
 'lime', 'maroon', 'navy', 'olive', 'orange', 'purple', 'red', 
 'silver', 'teal', 'white', 'yellow'];*/
 var canvasFill_Click_pos_old=-1;
 function canvasFill_Click(e) {
-	let row=Math.floor(e.offsetX / boxSize)
-	let column=Math.floor(e.offsetY / boxSize)
+	let y=Math.floor(e.offsetY / boxSize);
+	let x=Math.floor(e.offsetX / boxSize);
 	
-	
-	let pos=row*canvasFill_hE+column;
+	let pos=y*canvasFil_patternlArrSizeM+x;
 	if(canvasFill_Click_pos_old==pos) //change color only if clicking again
 	{
 		colorFill_i++; colorFill_i%=colorFill_iE;
@@ -635,28 +671,26 @@ function canvasFill_Click(e) {
 	canvasFill_Click_pos_old=pos;
 	
 	canvasFill_ctx.fillStyle=colors[colorFill_i] //RGBArr2HTML(hsvToRgb(colorFill_i/colorFill_iE,1,1))
-	canvasFill_ctx.fillRect(row * boxSize,	column * boxSize,	boxSize, boxSize);
+	canvasFill_ctx.fillRect(x * boxSize, y * boxSize, boxSize, boxSize);
 
-	canvasFil_patternlArr[column][row]=colorFill_i;
+	canvasFil_patternlArr[pos]=colorFill_i;
 	
 	fill_field(1);
 }
 
 drawBox();
 
-
 function fill_field(b_fill_w_pattern)
 {
 	for(let y=0, n=0;y<hh;y++){
 		for(let x=0;x<ww;x++,n++) {
-			let pos=x*hh+y;
+			let pos=y*ww+x;
 			 field[pos]= b_fill_w_pattern ?
-				canvasFil_patternlArr[y%canvasFill_hE][x%canvasFill_wE]*222/colorFill_iE //fill field with pattern from canvasFil_patternlArr
+				canvasFil_patternlArr[x%canvasFill_wE+(y%canvasFill_hE)*canvasFil_patternlArrSizeM]*222/colorFill_iE //fill field with pattern from canvasFil_patternlArr
 				: 0; 
 			}
 	}
 }
-
 function fill_field_clear_all()
 {
 	fill_field(1); clearAll();
@@ -680,19 +714,17 @@ function clearAll() //except field
 
 <script> //loop
 var canvas = $('canvas');
-canvas.width=ww;
-canvas.height=hh;
 
 var lastX,lastY;
 var dragEnd_dX=0;
 var dragEnd_dY=0;
 var lastX=1/2,lastY=1/2;
 
-
 var dragStart,dragged;
-addEvents_panZoom_ToCanvasView(canvas);
+var zoom_t=1;
+
 function addEvents_panZoom_ToCanvasView(canvasView)
-{	console.log(ww,hh,lastX,lastY)
+{	//console.log(ww,hh,lastX,lastY)
 	lastX=canvasView.width/2;
 	lastY=canvasView.height/2;
 
@@ -712,8 +744,8 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 			//pt = ctxView.transformedPoint(lastX,lastY);
 			//ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
 			//redraw();
-			viewCenterX=(lastX-dragStart[0])/canvasView.width*zoom+dragEnd_dX;
-			viewCenterY=(lastY-dragStart[1])/canvasView.height*zoom+dragEnd_dY;	//console.log(viewCenterX,viewCenterY)
+			xx=(lastX-dragStart[0])/canvasView.width*zoom+dragEnd_dX;
+			yy=(lastY-dragStart[1])/canvasView.height*zoom+dragEnd_dY;	//console.log(xx,yy)
 		}
 				//console.log(lastX,lastY)
 				if(il%16==0)	URL_upd();
@@ -724,8 +756,8 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 		if (!dragged) Zoom(evt.shiftKey ? -1 : 1 );
 		else
 		{
-			dragEnd_dX=viewCenterX;
-			dragEnd_dY=viewCenterY;
+			dragEnd_dX=xx;
+			dragEnd_dY=yy;
 			//console.log(dragEnd_dX,dragEnd_dY)
 			URL_upd();
 		}
@@ -747,10 +779,10 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 		$('slider_zoom').value=zoom*50;
 		URL_upd();
 		
-		viewCenterX+=lastX/canvasView.width*(zoom-zoomOld);
-		viewCenterY+=lastY/canvasView.height*(zoom-zoomOld);
-		dragEnd_dX=viewCenterX;
-		dragEnd_dY=viewCenterY;
+		xx+=lastX/canvasView.width*(zoom-zoomOld);
+		yy+=lastY/canvasView.height*(zoom-zoomOld);
+		dragEnd_dX=xx;
+		dragEnd_dY=yy;
 		
 		//var delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
 		//if (delta) Zoom(delta);
@@ -759,13 +791,13 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 	canvasView.addEventListener('DOMMouseScroll',handleScroll,false);
 	canvasView.addEventListener('mousewheel',handleScroll,false);
 }
-var zoom_t=1;
+
 
 const gl = canvas.getContext("webgl", { alpha: false }); //if (!gl) {alert('no webgl')}
 
 let programInfo = webglUtils.createProgramInfo(
    gl, [
-`
+` //================================== vs
 attribute vec2 a_position;
 attribute vec2 a_texCoord;
 
@@ -773,20 +805,23 @@ uniform vec2 u_resolution;
 
 varying vec2 v_texCoord;
 
+uniform float zoom;
+uniform vec2 view_center;
+
 void main() {
    //gl_PointSize = 12.0;
   
-   vec2 zeroToOne = a_position / u_resolution; // convert the rectangle from pixels to 0.0 to 1.0
+   vec2 zeroToOne = a_position /  vec2(u_resolution.x,u_resolution.y); // convert the rectangle from pixels to 0.0 to 1.0
    vec2 zeroToTwo = zeroToOne * 2.0; // convert from 0->1 to 0->2
    vec2 clipSpace = zeroToTwo - 1.0; // convert from 0->2 to -1->+1 (clipspace)
 
-   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); //@@@a_position //TODO pan, zoom here
+   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
 
    // pass the texCoord to the fragment shader. The GPU will interpolate this value between points.
-   v_texCoord = a_texCoord;
+   v_texCoord = a_texCoord*zoom-view_center;
 }
 `
-, //==================================
+, //================================== ps
 `
 precision highp float;
 
@@ -797,10 +832,14 @@ varying vec2 v_texCoord; //from the vertex shader
 
 uniform float timestamp;
 uniform float h_mul;
+uniform float h_k0;
 uniform float h_k1;
 uniform float h_k2;
+uniform float h_k3;
+uniform float h_k4;
+uniform float h_k5; //min (black point)
+uniform float h_k6; //light max
 uniform float zoom;
-uniform vec2 view_center;
 
 /*
 // All components are in the range [0…1], including hue.
@@ -820,9 +859,11 @@ vec3 rgb2hsv(vec3 c)
 vec3 hsv2rgb(vec3 c)
 {
 	//vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-	vec4 K = vec4(1.0, h_k1, h_k2, 3.0); //! TODO i want more palette control control, some gradients with 'stops'
-	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+	//vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	//return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+	vec4 K = vec4(h_k0, h_k1, h_k2, h_k3); //! TODO i want more palette control control, some gradients with 'stops'. And some with this bars
+	vec3 p = abs(fract(c.xxx + K.xyz) * h_k4 - K.www);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, h_k5, h_k6), c.y);
 }
 /*
 // Official HSV to RGB conversion 
@@ -844,15 +885,19 @@ vec3 hsv2rgb_smooth( in vec3 c )
 }
 */
 void main() {
-	//vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
-	//gl_FragColor = (
-	//	 texture2D(u_image, v_texCoord) +
-	//	texture2D(u_image, v_texCoord + vec2(onePixel.x, 0.0)) +
-	//	texture2D(u_image, v_texCoord + vec2(-onePixel.x, 0.0))) / 3.0;
+/*
+	vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
+	gl_FragColor = (
+		 texture2D(u_image, v_texCoord) +
+		texture2D(u_image, v_texCoord + vec2(onePixel.x, 0.0)) +
+		texture2D(u_image, v_texCoord + vec2(-onePixel.x, 0.0))) / 3.0;
+		*/
 	   
 	//gl_FragColor = vec4(v_texCoord.x, v_texCoord.y, 0, 1); 
 	
-	float c0=texture2D(u_image, v_texCoord*zoom-view_center).x;
+	float c0=texture2D(u_image, v_texCoord).x;
+	//c0=gl_FragColor.x;
+	
 	if(c0==0.)
 	{
 		gl_FragColor = vec4(0.,0.,0.,1.);
@@ -880,8 +925,6 @@ void main() {
 	//gl_FragColor = vec4( hsv2rgb(c), 1.);
 	//gl_FragColor = texture2D(u_image, v_texCoord)+vec4(v_texCoord.x, v_texCoord.y, 0, 1); //vec4(1, 0.5, 0, 1);
 }
-
-
 
 `
 ]);
@@ -935,8 +978,8 @@ let floatTextures = gl.getExtension('OES_texture_float'); if (!floatTextures) { 
 //,OES_texture_half_float //16b  
 
 //=============================================
-//texArr=new Uint8Array(wh)
-texArr=new Float32Array(wh)
+
+var texArr;
 
 var dt_avg=10, dtAnt=20, dtDraw=20;
 var bStop=true; //initial is stopped, because of need click to init audio
@@ -948,19 +991,32 @@ var timestamp_t=0;
 var h_mul_mul=0.001;
 var h_incr_mul=1;
 
+var frameNID=-1;// №
+let ant_dirAbs_last=0;
+let ant_step_i_last=0;
+
 function loop(timestamp) {
 timestamp=timestamp_t //!fix something increment this if delete this it will still increasing %\
 timestamp_t+=h_incr*h_incr_mul;
 	var t0=window.performance.now();
 	
 	for (let i = 0; i < speed; i++) { //100000000 =10M=1s on opera2020  //310+35ms separate field arr
-	for(let i=0;i<ants.length;i++)
-	{
+		for(let i=0;i<ants.length;i++)
+		{
 		 ants[i].run();
-		 //bStop=true; //single step mode press btn //sleep(500)
+		 //bStop=true; //TODO single step mode press btn //sleep(500)
 		}
 	}
-
+	if(fieldAdd>0)
+	{
+		for(let i=0;i<wh;i++)
+		{
+			if( !bfieldAdd_lim || (field[i]>0 || field[i]<=255) )
+			{
+				field[i]--;
+			}
+		}
+	}
 	var tA=window.performance.now();
 
 /*
@@ -970,7 +1026,6 @@ texArr[(y*ww+x)*4+1] = 111; // Green component
 texArr[(y*ww+x)*4+2] = c; // Blue component
 texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 */
-
 
 	switch(showArr)
 	{
@@ -988,9 +1043,12 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		//	texArr[n] = value;
 		//}
 		//}
+
 		for(let i=0;i<wh;i++){
+												if(del_field_if_step_i>0 && arrHist[i]<ants[0].step_i_real-del_field_if_step_i) field[i]=0;
 			texArr[i] = field[i];
-			//if(arrVisits[i]==0){texArr[i] = field[i];} //only first
+			//if(arrVisits[i]<3){texArr[i] = field[i];} //only first
+			//else {texArr[i]++}
 		}
 		break;
 		
@@ -1023,7 +1081,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		
 		case 'arrHistDirAbs':
 		h_mul_mul=0.00001;
-		h_incr_mul=1;	
+		h_incr_mul=1;
 		for(let i=0;i<wh;i++)
 			texArr[i] = arrHistDirAbs[i];		
 		break;
@@ -1036,12 +1094,14 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		break;
 	}
 
-
-
  //var rgbaTex = textureFromPixelArray(gl, texArr, gl.RGBA, ww, hh); //convert texArr to Uint8Array
 
-
 if(il==0){
+	resizeCanvasToDisplaySize(gl.canvas); //need every time after resize TODO2 resize wo reload . 
+	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); 		//console.log('viewport canvas',gl.canvas.width, gl.canvas.height); // Tell WebGL how to convert from clip space to pixels
+	//https://webglfundamentals.org/webgl/lessons/webgl-anti-patterns.html
+
+
   let textureField = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, textureField);
 
@@ -1059,17 +1119,23 @@ if(il==0){
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); // new Uint8Array(texArr)
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(texArr));
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.FLOAT, texArr);
-
-  gl.uniform1f(timestampId, timestamp); 
-  gl.uniform1f(h_mulId, h_mul*h_mul_mul); 
-  gl.uniform1f(h_k1Id, h_k1); 
-  gl.uniform1f(h_k2Id, h_k2); 
-  gl.uniform1f(zoomId, zoom); 
-  gl.uniform2f(view_centerId, viewCenterX,viewCenterY);  //console.log(viewCenterX,viewCenterY)
+	
+  gl.uniform1f(timestampId, timestamp);
+  gl.uniform1f(h_mulId, h_mul*h_mul_mul);
+  gl.uniform1f(h_k0Id, h_k0);
+  gl.uniform1f(h_k1Id, h_k1);
+  gl.uniform1f(h_k2Id, h_k2);
+  gl.uniform1f(h_k3Id, h_k3);
+  gl.uniform1f(h_k4Id, h_k4);
+  gl.uniform1f(h_k5Id, h_k5);
+  gl.uniform1f(h_k6Id, h_k6);
+  gl.uniform1f(zoomId, zoom);
+  gl.uniform2f(view_centerId, xx,yy);
   //gl.uniform1i(texId, tar); //unnecessary
 
-  gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);  // set the resolution
-  gl.uniform2f(textureSizeLocation, ww, hh); // set the size of the image
+  gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);  //console.log('res canvas',gl.canvas.width, gl.canvas.height); // set the resolution
+  gl.uniform2f(textureSizeLocation, ww, hh); //console.log('tex canvas',ww, hh); // set the size of the image
+		 //console.log(gl.canvas.width,gl.canvas.height);
   
   // Draw the rectangle.
   gl.drawArrays(gl.TRIANGLES, 0, 6); //primitiveType offset count
@@ -1096,7 +1162,7 @@ if(il==0){
 	ant_step_i_last=ant_selected.step_i;
 	
 
-	if(binit_Audio && osc.bOn)
+	if(bAudioGen)
 	{
 		let Timeout=dt0
 		//let freq_new=30+Math.abs(ant_selected.rotSpeed)*AudioFreqMul; //
@@ -1126,21 +1192,15 @@ if(il==0){
 	
 	if(!bStop)	frameNID=requestAnimationFrame(loop)
 }
-var frameNID=-1;// №
-	let ant_dirAbs_last=0;
-	let ant_step_i_last=0;
 
-var bBeforeStart=true;
+
+
 function swStartStop(b) //true to start.	undefined to toggle
 {
-	bBeforeStart=false;
 	if(b===undefined)	bStop=!bStop;
 	else bStop=!b;
 	
 	$tx('stop_sw',bStop?'start':'stop');
-	
-	if(!binit_Audio) init_Audio();
-	else sw_Audio();
 	
 	if(bStop)
 	{
@@ -1150,15 +1210,17 @@ function swStartStop(b) //true to start.	undefined to toggle
 	{
 		frameNID=requestAnimationFrame(loop);
 	}
+	sw_audio(!bStop);
 }
-	var osc;
+
+//=========================================== Audio
+	var osc=null;
 	var context;
 	var freq_avg=0;
 
-	//canvas.onclick=sw_AllowAudio	//document.onclick=sw_Audio
-var binit_Audio=false;
+	//canvas.onclick=sw_bAudioOFF	//document.onclick=sw_bAudioOFF
 function init_Audio(){
-	if(bNoAudio==true) return;
+	if(bAudioOFF==true || bStop) return; //dont neeed if Stop or mutted
 	context = new(window.AudioContext || window.webkitAudioContext)();
 	osc = context.createOscillator(); 
 	// Sine is the default type. Also available: square, sawtooth and triangle waveforms.
@@ -1168,52 +1230,51 @@ function init_Audio(){
 	osc.connect(context.destination); //== const osc = new Tone.Oscillator(440, "sine").toDestination().start();
 	osc.frequency.setValueAtTime(440, now+1);
 	osc.start(now);  
-	
-	binit_Audio=true;
-	osc.bOn=true;
-}
-var bAllowAudio=true; // not Mute //! TODO re to bMute
-function sw_AllowAudio(){ //console.log(bAllowAudio)
-	if(!binit_Audio) init_Audio()
-	else
-	bAllowAudio=!osc.bOn;
-	sw_Audio(bAllowAudio);	//console.log(bAllowAudio)
-}
-function sw_Audio(bOn) //this is not solving alert "The AudioContext was not allowed to start"
-{
-	if(!binit_Audio)
-	{
-		init_Audio(); 
-		if(bBeforeStart)	swStartStop();
-		return;
-	}
-	
-	if(binit_Audio)
-	{
-		if(bOn===undefined || typeof bOn!="boolean")  bOn=!osc.bOn;
-		osc.bOn=bOn
-		//console.log('bOn, bAllowAudio',bOn, bAllowAudio)
-		if(bOn)
-		{
-			if(bAllowAudio)
-			{
-				//osc.start(now);
-				osc.connect(context.destination); 
-			}
-		}
-		else
-		{
-			osc.disconnect();
-			//osc.stop(now);
-		}
-		return;
-	}
 }
 
+ //this is not solving alert "The AudioContext was not allowed to start"
+function sw_bAudioOFF(b){
+	if(b===undefined || typeof b!="boolean") bAudioOFF=!bAudioOFF;
+	else bAudioOFF=b;
+	
+	bAudioOFF_updView();
+	
+	//----- disable if need
+	if(bAudioOFF)
+	{
+	 if(osc) osc.disconnect();
+	 return;
+	}	
+	if(bStop) return;
+	
+	//----- enable
+	sw_audio(true);
+}
+
+function sw_audio(b){ //TODO osc.start/stop insdead
+ if(bAudioOFF || !b){
+	if(osc) osc.disconnect();
+	bAudioGen=false;
+ }
+ else{
+	if(!osc) init_Audio();
+	osc.connect(context.destination); 
+	bAudioGen=true;
+ }
+ //osc.start(now);
+}
+
+function bAudioOFF_updView(){
+ if(bAudioOFF) 
+	$('audio_panel').classList.add('off');
+ else
+	$('audio_panel').classList.remove('off');
+}
 
 //##const osc = new Tone.Oscillator(440, "sine").toDestination()
-//===========================================
-
+//=========================================== WebGL
+function setupWebGL()
+{
  // look up where the vertex data needs to go.
   const positionLocation = gl.getAttribLocation(programInfo.program, "a_position");
   const texcoordLocation = gl.getAttribLocation(programInfo.program, "a_texCoord");
@@ -1224,7 +1285,7 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
   // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   // Set a rectangle the same size as the image.
-  setRectangle(gl, 0, 0, ww, hh);
+  setRectangle(gl, 0, 0, ww, hh);														//console.log(ww,hh);
 
   // provide texture coordinates for the rectangle.
   var texcoordBuffer = gl.createBuffer();
@@ -1233,6 +1294,7 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
 	  0.0,  0.0,
 	  1.0,  0.0,
 	  0.0,  1.0,
+	  
 	  0.0,  1.0,
 	  1.0,  0.0,
 	  1.0,  1.0,
@@ -1240,15 +1302,6 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
 
   // Upload the image into the texture.
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-
-  // lookup uniforms
-  const resolutionLocation = gl.getUniformLocation(programInfo.program, "u_resolution");
-  const textureSizeLocation = gl.getUniformLocation(programInfo.program, "u_textureSize");
-
-  //webglUtils.resizeCanvasToDisplaySize(gl.canvas);
-
-  // Tell WebGL how to convert from clip space to pixels
-  //gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
   // Clear the canvas
   //gl.clearColor(0, 0, 0, 0);
@@ -1272,6 +1325,7 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
   // Turn on the texcoord attribute
   gl.enableVertexAttribArray(texcoordLocation);
   gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+  
 
   // Tell the texcoord attribute how to get data out of texcoordBuffer (ARRAY_BUFFER)
   var size = 2;		  // 2 components per iteration
@@ -1281,41 +1335,24 @@ function sw_Audio(bOn) //this is not solving alert "The AudioContext was not all
   var offset = 0;		// start at the beginning of the buffer
   gl.vertexAttribPointer( texcoordLocation, size, type, normalize, stride, offset);
 
+}
+  // lookup uniforms
+  const resolutionLocation = gl.getUniformLocation(programInfo.program, "u_resolution");
+  const textureSizeLocation = gl.getUniformLocation(programInfo.program, "u_textureSize");
+  
   const texId = gl.getUniformLocation(programInfo.program, 'u_image');
   const timestampId = gl.getUniformLocation(programInfo.program, 'timestamp');
   const h_mulId = gl.getUniformLocation(programInfo.program, 'h_mul');
+  const h_k0Id = gl.getUniformLocation(programInfo.program, 'h_k0');
   const h_k1Id = gl.getUniformLocation(programInfo.program, 'h_k1');
   const h_k2Id = gl.getUniformLocation(programInfo.program, 'h_k2');
+  const h_k3Id = gl.getUniformLocation(programInfo.program, 'h_k3');
+  const h_k4Id = gl.getUniformLocation(programInfo.program, 'h_k4');
+  const h_k5Id = gl.getUniformLocation(programInfo.program, 'h_k5');
+  const h_k6Id = gl.getUniformLocation(programInfo.program, 'h_k6');
   const zoomId = gl.getUniformLocation(programInfo.program, 'zoom');
   const view_centerId = gl.getUniformLocation(programInfo.program, 'view_center');
-
-
-function textureFromPixelArray(gl, dataArray, type, width, height) { //from arr, from  image https://stackoverflow.com/questions/9046643/webgl-create-texture
-	var dataTypedArray = new Uint8Array(dataArray); // Don't need to do this if the data is already in a typed array
-	var texture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texImage2D(gl.TEXTURE_2D, 0, type, width, height, 0, type, gl.UNSIGNED_BYTE, dataTypedArray);
-	// Turn off mips and set  wrapping to clamp to edge so it  will work regardless of the dimensions of the video.
- gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
- gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
- gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); //gl.NEAREST
- gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-	// Other texture setup here, like filter modes and mipmap generation
-	return texture;
-}
-
-
-//----------
-function hide_sw(id){
-  x=$('id')
-  if (x.style.display === "none") {
-	x.style.display = "block";
-  } else {
-	x.style.display = "none";
-  }
-// $('canvas').classList.toggle('hidden')
-}
-
+  
 function setRectangle(gl, x, y, width, height) {
   var x1 = x;
   var x2 = x + width;
@@ -1330,6 +1367,39 @@ function setRectangle(gl, x, y, width, height) {
 	 x2, y2,
   ]), gl.STATIC_DRAW);
 }
+/*
+function textureFromPixelArray(gl, dataArray, type, width, height) { //from arr, from  image https://stackoverflow.com/questions/9046643/webgl-create-texture
+	var dataTypedArray = new Uint8Array(dataArray); // Don't need to do this if the data is already in a typed array
+	var texture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.texImage2D(gl.TEXTURE_2D, 0, type, width, height, 0, type, gl.UNSIGNED_BYTE, dataTypedArray);
+	// Turn off mips and set  wrapping to clamp to edge so it  will work regardless of the dimensions of the video.
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); //gl.NEAREST
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	// Other texture setup here, like filter modes and mipmap generation
+	return texture;
+}
+*/
+
+function resizeCanvasToDisplaySize(canvas) {
+	// Lookup the size the browser is displaying the canvas in CSS pixels.
+	const displayWidth  = canvas.clientWidth;
+	const displayHeight = canvas.clientHeight;
+
+	// Check if the canvas is not the same size.
+	const needResize = canvas.width  !== displayWidth ||
+					   canvas.height !== displayHeight;
+
+	if (needResize) {
+	  // Make the canvas the same size
+	  canvas.width  = displayWidth;
+	  canvas.height = displayHeight;
+	}
+}	
+
+
 </script>
 
 </body>

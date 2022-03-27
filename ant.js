@@ -341,7 +341,7 @@ var ant = {
 				}
 
 				//var c=buffer32[this.y*dataSize+this.x] >> 16&255; //R
-				let pos=this.y*ww+this.x;
+				let pos=this.y*stt.w+this.x;
 				
 				//this.antFunc(this, pos);
 				this.antFunc(this, pos);//#opt
@@ -355,28 +355,33 @@ var ant = {
 				*/
 				
 				//----------visual
+				let bVisited=arrHist[pos]!=0;
+				let arrHist_pos=arrHist[pos];
 				
-				if(bhistory_continue)
+				switch(stt.hist_mode)
 				{
-					if(arrHist[pos]!=0)
-					{
-						//if(this.step_i>4096) this.step_i=0;
-						//this.step_i=(arrHist[pos]+this.step_i)/2;
-					    this.step_i=arrHist[pos];
-					}
-				}
-				else
-				{
-					if(bhistory_avg)
-					{
-						//if(arrHist[pos]!=0)
+					case "continue":
+						if(bVisited) // visited
+						{
+							//if(this.step_i>4095) this.step_i=0;
+							this.step_i=arrHist_pos;
+						}
+					break;
+					case "continueNew":
+						if(this.step_i<arrHist[pos]+100) //visited recently //TODO num to settings
+						{
+							this.step_i=arrHist_pos;
+						}
+					break;
+					case "avg":
+						//if(arrHist_pos!=0)
 						{
 							//if(this.step_i>4096) this.step_i=0;
-							this.step_i=(arrHist[pos]+this.step_i)/2;
-							//this.step_i=arrHist[pos];
+							this.step_i=(arrHist_pos+this.step_i)/2;
 						}
-					}
+					break;
 				}
+				
 				arrHist[pos]=this.step_i;
 			
 				arrVisits[pos]++;
@@ -393,7 +398,33 @@ var ant = {
 				//this.rotSpeed*=0.95; 
 				arrHist_rotSpeed[pos]=this.rotSpeed;
 				
-				this.step_i++;
+				switch(stt.hist_incr_mode)
+				{
+					case "no":
+					break;
+					case "unvisited":
+						if(!bVisited)
+						{
+							this.step_i++;
+						}
+					break;
+					case "visited":
+						if(bVisited)
+						{
+							this.step_i++;
+						}
+					break;					
+					case "visitOld":
+						if(this.step_i>arrHist_pos+10000)
+						{
+							this.step_i++;
+						}
+					break;
+					default:
+						this.step_i++;
+					break;
+				}
+				
 				this.step_i_real++;
 				//----------
 			}
@@ -458,7 +489,7 @@ var ant_fdir = {
 				}
 				
 
-				let pos=this.x*hh+this.y;
+				let pos=this.x*stt.h+this.y;
 				
 				//this.antFunc(this, pos);
 				switch (field[pos])
@@ -538,8 +569,8 @@ var ant_f = {
 
 				 let x=Math.abs(~~this.x%xM);
 				 let y=Math.abs(~~this.y%yM);
-				let pos=x*hh+y;
-				//let pos=~~((this.x)*hh+(this.y)); //this make 4x trails
+				let pos=x*stt.h+y;
+				//let pos=~~((this.x)*stt.h+(this.y)); //this make 4x trails
 
 				
 				//this.antFunc(this, pos);

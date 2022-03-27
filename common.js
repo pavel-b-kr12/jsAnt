@@ -2,12 +2,14 @@ function $(s) {return document.getElementById(s);}
 function rand() {return Math.random()}
 function randInt(max) {return Math.floor(Math.random() * Math.floor(max));}
 function $tx(s,t){$(s).innerText=t}
+function round(value, decimals){return Number(Math.round(value+'e'+decimals)+'e-'+decimals);}
 function hide_sw(id){
   x=$(id);
   if (x.style.display === "none") x.style.display = "block";
   else x.style.display = "none";
 // $(id).classList.toggle('hidden')
 }
+
 function sleep(ms) {
    var currentTime = new Date().getTime();
    while (currentTime + ms >= new Date().getTime()) {   }

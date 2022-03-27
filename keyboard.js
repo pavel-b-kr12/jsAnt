@@ -51,7 +51,7 @@ document.body.onkeydown = function(e){
 }
 
 function sortcutPress(k){
-	//showArr=(showArrSortcuts[k]!==undefined)?showArrSortcuts[k]:'field'; //without btns
+	//stt.showArr=(showArrSortcuts[k]!==undefined)?showArrSortcuts[k]:'field'; //without btns
 	el=$('shrtcutBtn'+k);
 	if(el!=null) el.click();
 }
@@ -67,7 +67,7 @@ function shrtcutBtn_click(e){
 	if(shrtcutBtn_last!=null) shrtcutBtn_last.classList.remove('shrtcutBtn_sel');
 	shrtcutBtn_last=el;
 	
-	showArr=el.textContent;	//console.log(e.target.innerText, e.target.textContent);
+	stt.showArr=el.textContent;	//console.log(e.target.innerText, e.target.textContent);
 }
 showArrSortcuts=[];//filled with tag titles 'f', 'h' ...
 showArrSortcuts_vk=[];//value:key to search keys

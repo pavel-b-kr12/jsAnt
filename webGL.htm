@@ -10,8 +10,13 @@
 <script src="keyboard.js" defer></script> 
 <script> //settings
 /*
+//need to move k-del file:///C:/_wr/TjurmiteHQ_Langtons_ant_nest/js/webGL_datGUI.htm?h=1080&w=1980&bAudioOFF=true&del_field_if_step_i=110000&showArr=arrHist&zoom=0.656&speed=6859&AudioFreqMul=1.01&xx=-0.2312&yy=-0.2906&a0=still_line2p_rombi&bfieldAdd_lim=true&&h_incr=0.000196&h_mul=5776&h_k0=0&h_k1=0.67&h_k2=0.33&h_k3=3&h_k4=6&clamp_limit=0.1&clamp_rest=0
+
+dont URL untill ask of link
+
 TODO
 video rec
+serialize save localStorage to file
 save img nm, load
 precission sliders
 zoom fix  is 1 on reload
@@ -21,94 +26,146 @@ field no draw after return
 negative speed
 */
 
-/*
-stt=
-{
- h_incr:0.001, //dt
- h_mul:1800,
- h_k1:2/3, //hue rainbow colors positions
- h_k2:1/3,
- zoom:1,
- bAudioOFF:false, //false true //do not init audio at start, but only after click Audio btn
- showArr:'field',
- speed:100,  //TODO slow speed less than fps //TODO move to HTML
- AudioFreqMul:1, 
-//TODO Audio volume
- xx:0,
- yy:0
-}
-*/
-var h_incr=0.001; //dt
-var h_mul=1800;
-var h_k0=0;
-var h_k1=2/3; //hue rainbow colors positions
-var h_k2=1/3;
-var h_k3=3;
-var h_k4=6;
-var h_k5=0;
-var h_k6=1;
-var zoom=1;
-var bAudioOFF=false; //false true //do not init audio at start, but only after click Audio btn
-var showArr='field';
-var speed=100;  //TODO slow speed less than fps //TODO move to HTML
-var AudioFreqMul=1.01; 
-//TODO Audio volume
-var xx=0;
-var yy=0;
-var bhistory_continue=false; //##TODO single switch option as it can only be 1
-var bhistory_avg=false;
-var del_field_if_step_i=0;
+var ant_selected=null;
 
 var stt={};
 
-function createTemp_settings()
+var ccc ={};
+cccont=
 {
- stt.w=ww;
- stt.h=hh;
- stt.h_incr=h_incr.toFixed(6);
- stt.h_mul=h_mul;
- stt.h_k0=h_k0.toFixed(2);
- stt.h_k1=h_k1.toFixed(2);
- stt.h_k2=h_k2.toFixed(2);
- stt.h_k3=h_k3.toFixed(2);
- stt.h_k4=h_k4.toFixed(2);
- stt.h_k5=h_k5.toFixed(2);
- stt.h_k6=h_k6.toFixed(2);
- stt.zoom=zoom.toFixed(3);
- stt.bAudioOFF=bAudioOFF;
- stt.showArr=showArr;
- stt.speed=speed;
- stt.AudioFreqMul=AudioFreqMul.toFixed(3);
- stt.xx=xx.toFixed(4);
- stt.yy=yy.toFixed(4);
- stt.bhistory_continue=bhistory_continue;
- stt.bhistory_avg=bhistory_avg;
- stt.del_field_if_step_i=del_field_if_step_i;
+ ccc:ccc,
+ nm:rand()
+}
+
+function cccont_default()
+{
+ let o= {
+ ccc:{ },
+ nm:'default'
+}
+
+o.ccc.h_incr=0.001; //dt
+o.ccc.h_mul=1800;
+o.ccc.h_k0=0;
+o.ccc.h_k1=2/3; //hue rainbow colors positions
+o.ccc.h_k2=1/3;
+o.ccc.h_k3=3;
+o.ccc.h_k4=6;
+o.ccc.h_kBk=0;
+o.ccc.h_kLi=1;
+o.ccc.clamp_limit=1;
+o.ccc.clamp_rest=0;
+
+return o;
+}
+
+
+function format_ccc()
+{
+ ccc.h_incr=round(ccc.h_incr,6);
+ ccc.h_mul=ccc.h_mul;
+ ccc.h_k0=round(ccc.h_k0,2);
+ ccc.h_k1=round(ccc.h_k1,2);
+ ccc.h_k2=round(ccc.h_k2,2);
+ ccc.h_k3=round(ccc.h_k3,2);
+ ccc.h_k4=round(ccc.h_k4,2);
+ ccc.h_kBk=round(ccc.h_kBk,2);
+ ccc.h_kLi=round(ccc.h_kLi,2);
+ ccc.clamp_limit=round(ccc.clamp_limit,2);
+ ccc.clamp_rest=round(ccc.clamp_rest,2);
+ 
+ return ccc;
+}
+function stt_default(){
+	stt.h=null;stt.w=null;
+	stt.bAudioOFF=false;
+	stt.del_field_if_step_i=0;
+	stt.hist_mode='';
+	stt.hist_incr_mode='';
+	stt.showArr='field';
+	
+	
+stt.zoom=1;
+stt.bAudioOFF=false; //false true //do not init audio at start, but only after click Audio btn
+stt.showArr='field';
+stt.speed=100;  //TODO slow speed less than fps //TODO move to HTML
+stt.AudioFreqMul=1.01; 
+//TODO Audio volume
+stt.xx=0;
+stt.yy=0;
+stt.hist_mode=0;
+stt.hist_incr_mode=0;
+stt.del_field_if_step_i=0;
+}
+function format_stt()
+{
+ stt.w=stt.w==null?1024:parseInt(stt.w);
+ stt.h=stt.h==null?512:parseInt(stt.h);
+ 
+ stt.zoom=round(stt.zoom,3);
+ stt.bAudioOFF=JSON.parse(stt.bAudioOFF);
+ stt.showArr=stt.showArr;
+ stt.speed=parseInt(stt.speed);
+ stt.AudioFreqMul=round(stt.AudioFreqMul,3);
+ stt.xx=round(stt.xx,4);
+ stt.yy=round(stt.yy,4);
+ stt.hist_mode=stt.hist_mode;
+ stt.hist_incr_mode=stt.hist_incr_mode;
+ stt.del_field_if_step_i=parseInt(stt.del_field_if_step_i);
+ 
  return stt;
 }
-function paramsToObject_and_Global(entries) {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
-  let result = {}
-  for(let entry of entries) { // each 'entry' is a [key, value] tupple
-    const [key, value] = entry;
-    result[key] = value;
+function paramsTo_stt() {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
+	let ss=window.location.search.split('\&\&');
 	
-	let num=parseFloat(value);
-	window[key] = isNaN(num)?value:num; //and upd global var. TODO test if there is speed difference for access //TODO check incorrect val, and set default
-  }
-  return result;
+	let entries=new URLSearchParams(ss[0]);
+	for(let entry of entries) { // each 'entry' is a [key, value] tupple
+		const [key, value] = entry;
+		stt[key] = value;
+	}
+	format_stt();
+	
+	entries=new URLSearchParams(ss[1]);
+	for(let entry of entries) {
+		const [key, value] = entry;
+		ccc[key] = value;
+	}
+
+	format_ccc();//upd drom global //TODO opt not use global
+	
+	bAudioOFF_updView();
 }
-function settingsFromURL()
-{
- stt=paramsToObject_and_Global(new URLSearchParams(window.location.search));
- bAudioOFF_updView();
-}
+
+var URL_upd_next_t=0;
 function URL_upd() //TODO ant type, antF, colorF, pattern
 {
- let url_str=new URLSearchParams(createTemp_settings()).toString();//https://stackoverflow.com/questions/6566456/how-to-serialize-an-object-into-a-list-of-url-query-parameters
- url_str=url_str.replace('\&bAudioOFF=false','');//del default values
- url_str=url_str.replace('\&bhistory_continue=false','');
- url_str=url_str.replace('\&bhistory_avg=false','');
+ if(performance.now()<URL_upd_next_t) return;  //TODO2 set bNeedUpd=true
+ URL_upd_next_t=performance.now()+0.1;
+ 
+
+ if(ccc.clamp_limit==1) ccc.clamp_rest=0.1; // to del default
+ /* //skip default values from url
+format_stt();
+format_ccc();
+TODO check if same in default and do not add to temp object
+ */
+ 
+ let url_str=new URLSearchParams(format_stt()).toString()+
+ '\&\&'+//separate stt from ccc
+ //https://stackoverflow.com/questions/6566456/how-to-serialize-an-object-into-a-list-of-url-query-parameters
+ new URLSearchParams(format_ccc()).toString();
+ //del default values
+ url_str=url_str.replace('\&bAudioOFF=false','');
  url_str=url_str.replace('\&del_field_if_step_i=0','');
+ url_str=url_str.replace('\&hist_mode=0','');
+ url_str=url_str.replace('\&hist_incr_mode=0','');
+ url_str=url_str.replace('\&showArr=field','');
+ url_str=url_str.replace('\&h_kBk=0','');
+ url_str=url_str.replace('\&h_kLi=1','');
+ url_str=url_str.replace('\&clamp_limit=1','');
+ url_str=url_str.replace('\&clamp_rest=0.1','');
+ 
+ 
  let ar=window.location.pathname.split('/');
  history.replaceState(null, null, ar[ar.length-1]+'?'+url_str); 
  //history.replaceState({}, null, 'webGL.htm?'+url_str);//TODO  move zoom do not upd pushState() immediately but after some timer to prevent flood of history  OR replace history replaceState()
@@ -122,38 +179,29 @@ var bAudioGen=false;
 
 function resetwh()
 {
-	settingsFromURL();
+	stt_default();	//restore default first
+	cccont=cccont_default();
+	ccc=cccont.ccc;
+	paramsTo_stt();
+	
+	
 	//
 	//if(window.innerHeigh!==undefined)
 	//{
-	//h=window.innerHeigh>1200 ?1024:512; //console.log(window.innerHeigh, 'set hh:', hh);
+	//h=window.innerHeigh>1200 ?1024:512; //console.log(window.innerHeigh, 'set stt.h:', stt.h);
 	//w=window.innerWidth>1100 ?1024:512; //!TODO. this can be done after page load
 	//}
-	//else //TODO check url first
-	{ //url ?w=32&h=512
 
-	let searchParams = new URLSearchParams(window.location.search);
-		h=searchParams.get('h')
-		if(h!=null){
-			h=parseInt(h); if(h<32) h=32; else if(h>2048) h=2048;
-		}
-		w=searchParams.get('w')
-		if(w!=null){
-			w=parseInt(w); if(w<32) w=32; else if(w>4096) w=4096;
-		}
-	}
-	hh = h==null?1024:h;
-	ww = w==null?1024:w;
-	//console.log('set w,h, arrays and canvas to: ', ww,hh);
+	//console.log('set w,h, arrays and canvas to: ', stt.w,stt.h);
 
- wh=ww*hh;
- xc=ww/2;
- yc=hh/2;
- xM=ww-1;
- yM=hh-1;
+ wh=stt.w*stt.h;
+ xc=stt.w/2;
+ yc=stt.h/2;
+ xM=stt.w-1;
+ yM=stt.h-1;
  
- canvas.width=ww;
- canvas.height=hh;
+ canvas.width=stt.w;
+ canvas.height=stt.h;
 
  field = new Uint8Array(wh); //2D array [x][y] tested as slower https://stackoverflow.com/questions/1242705/performance-of-2-dimensional-array-vs-1-dimensional-array
  field_f= new Float32Array(wh); //for ant_f
@@ -173,7 +221,7 @@ function resetwh()
 
 //field.fill(4, 1, 3); //val, start, end
 
-// field =Array(ww).fill(Array(hh)); //Rows are copied by reference
+// field =Array(stt.w).fill(Array(stt.h)); //Rows are copied by reference
 //https://stackoverflow.com/questions/1295584/most-efficient-way-to-create-a-zero-filled-javascript-array
 
 //TODO filled area per t, 	end point distance per t
@@ -183,21 +231,18 @@ function resetwh()
 <style>
 .pa {color: red;}
 /*.viewport {position: absolute;}*/
-.abs {position: absolute; }
+.dropmenu {position: fixed; }
 .shortcut{
 	text-decoration: underline; 
 	background-color: #ffeecc;
 	text-transform: capitalize;/* affect innerText, but not .textContent */
-}
-.horContainer { display: flex;
-    flex-wrap: wrap;
 }
 
 body{
  background-color: #fbefff;
 }
 
-#inf{width: 280px;}
+/*#inf{width: 280px;}*/
 fieldset {
 	background-color: #fffbb9;
 	/*width: min-content;*/
@@ -214,14 +259,16 @@ fieldset {
 }
 
 .footer {
-  position: fixed;
-  bottom: 0;
+  position:fixed;
+  bottom:0;
+  z-index:99;
 }
 
 fieldset.off {
-	background-color: #333351;
+	background-color: #646474;
+	/*color:#343338;*/
 }
-
+/*333351*/
 legend {
 	background-color: #bdbcbcad;
 
@@ -243,6 +290,11 @@ legend {
 {
 	background-color: #bdbcff;
 }
+
+input[type=checkbox]{
+position: relative;
+top: 2px;
+}/*or parent vertical-align: middle;*/
 </style>
 <style>
 .w3-black, .w3-hover-black:hover {
@@ -293,13 +345,38 @@ legend {
   box-shadow: none;
   border: none;
 }
+
+
+.pan {
+  position: absolute;
+  /*overflow: hidden;*/
+}
+/* Prevents inconsistent highlighting of element while being dragged*/
+/*
+.pan {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+*/
 </style>
-	
+
 </head>
 <body>
+<div class="pan" style="padding: 20px;border: red;border-style: solid;">
+<!-- <h1 style="position: absolute; left: 4px;">!</h1> -->
+<li>Hold Ctrl to move panels or check to drag: <input type='checkbox' oninput='bpanDragWOCtrl=checked'></li>
+<button onclick='posReset()'>reset panels pos</button><br>
+<li>if screen became black - try to adjust h_mul or select colorization preset</li>
+<!-- <li>🔗 get link</li> -->
+</div>
 
-<div class="horContainer">
-<div class="hor" id='inf'>
+<div class="panContainer">
+<div class="pan">
 ms walk+draw<br><i id="dtAnt"></i> + <i id="dtDraw"></i> <br>
 dirAbs <i id='dirAbs'></i><br>
 step <i id='step_i'></i><br>
@@ -312,24 +389,24 @@ AudioFreq of selected <i id='AudioFreq'></i><br>
 </div>
 
 
-<div class="hor buttons_panel footer">
+<div class="buttons_panel footer">
 <button onclick="$('canvas').requestFullscreen();">Fullscreen canvas</button>
 <button onclick="window.location.replace(window.location.pathname)">reload empty settings</button> 
 <button onclick="window.location.replace(window.location.pathname+'?w=1024&h=1024')">reload empty 1024*1024</button>
-<button onclick="ww=1024;hh=1024;URL_upd();window.location.reload()">1024*1024</button>
-<button onclick="ww=2048;hh=2048;URL_upd();window.location.reload()">2048*2048</button>
-<button onclick="ww=2048;hh=2048;URL_upd();window.location.reload()">4096*4096</button>
-<button onclick="ww=1024;hh=64;URL_upd();window.location.reload()">1024*64</button>
-<button onclick="ww=1024;hh=32;URL_upd();window.location.reload()">1024*32</button>
-<button onclick="ww=1024;hh=8;URL_upd();window.location.reload()">1024*8</button>
-<button onclick="ww=1980;hh=1080;URL_upd();window.location.reload()">1980*1080 **wrap disabled: NPOT texure size</button>
-<button onclick="ww=2560;hh=1440;URL_upd();window.location.reload()">2560*1440 **</button>
+<button onclick="stt.w=1024;stt.h=1024;URL_upd();window.location.reload()">1024*1024</button>
+<button onclick="stt.w=2048;stt.h=2048;URL_upd();window.location.reload()">2048*2048</button>
+<button onclick="stt.w=2048;stt.h=2048;URL_upd();window.location.reload()">4096*4096</button>
+<button onclick="stt.w=1024;stt.h=64;URL_upd();window.location.reload()">1024*64</button>
+<button onclick="stt.w=1024;stt.h=32;URL_upd();window.location.reload()">1024*32</button>
+<button onclick="stt.w=1024;stt.h=8;URL_upd();window.location.reload()">1024*8</button>
+<button onclick="stt.w=1980;stt.h=1080;URL_upd();window.location.reload()">1980*1080 **wrap disabled: NPOT texure size</button>
+<button onclick="stt.w=2560;stt.h=1440;URL_upd();window.location.reload()">2560*1440 **</button>
 </div>
 
 
-<div class="hor">
+<div class="pan">
 <button id='stop_sw' onclick="swStartStop()">start<p class='pa'>To start Click! or press ` 1....9 (speed)</p></button>
-<button onclick="record(canvas,5000);">REC</button>
+<button onclick="record(canvas,5000);">REC video</button>
 
 <fieldset>
 <legend style="border: 1px solid;">
@@ -337,39 +414,180 @@ AudioFreq of selected <i id='AudioFreq'></i><br>
 </legend>
 <br>
 To view arrays of fieds press keyboard:<br>
-<button name='show_arr' class='shrtcutBtn grA' tag='f' title='f'>field</button> 
-<button name='show_arr' class='shrtcutBtn grA' tag='h' title='step number'>arrHist</button> 
-<input id='sw_history_continue_mode' type="checkbox" oninput="bhistory_continue=checked;URL_upd()"> continue history from arr 
-<input id='sw_history_avg_mode' type="checkbox" oninput="bhistory_avg=checked;URL_upd()"> average history from arr<br>
-<button name='show_arr' class='shrtcutBtn grA' tag='v' title='count'>arrVisits</button> 
-<button name='show_arr' class='shrtcutBtn grA' tag='d'title='+=this.dir'>arrDir_last</button> 
-<button name='show_arr' class='shrtcutBtn grA' tag='e'title='=this.dir'>arrHistDir_E</button> 
-<button name='show_arr' class='shrtcutBtn grA' tag='r'title='not overflowed by %4 (or %8)'>arrHistDirAbs</button> 
-<button name='show_arr' class='shrtcutBtn grA' tag='s'title='s'>arrHist_rotSpeed</button> 
-<br>
-<input id='slider_del_field_if_step_i' type="range" min="0" max="128" value="0" oninput="del_field_if_step_i=value*1000; $tx('slider_del_field_txt', value);URL_upd();"> <i id='slider_del_field_txt'></i>k, delete field if step is older
-<br>
-<input id='slider_speed' type="range" min="0" max="200" value="10" oninput="speed=Math.pow(this.value,3);$tx('slider_speed_txt',speed);URL_upd();"> <i id='slider_speed_txt'>sim </i> speed ops/Frame<br>
+<button name='show_arr' class='shrtcutBtn grA' tag='f' title='f'>field</button>
+<button name='show_arr' class='shrtcutBtn grA' tag='h' title='step number'>arrHist</button>
 
-<input id='slider_h_incr' type="range" min="0" max="200" value="1" oninput="h_incr=Math.pow(value*0.001,2); $tx('slider_h_incr_txt', h_incr.toFixed(6));URL_upd();"> <i id='slider_h_incr_txt'></i> h_incr<br>
-<input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', h_mul*h_mul_mul.toFixed(8)); URL_upd();"> <i id='slider_h_mul_txt'></i> h_mul<br>
-<input id='slider_h_k0' type="range" min="-50" max="200" value="100" oninput="h_k0=value/100;$tx('slider_h_k0_txt', h_k0);URL_upd()"> <i id='slider_h_k0_txt'></i> h_k0 ? 1<br>
-<input id='slider_h_k1' type="range" min="-50" max="200" value="66" oninput="h_k1=value/100;$tx('slider_h_k1_txt', h_k1);URL_upd()"> <i id='slider_h_k1_txt'></i> h_k1 ? 2/3<br>
-<input id='slider_h_k2' type="range" min="-50" max="200" value="33" oninput="h_k2=value/100;$tx('slider_h_k2_txt', h_k2);URL_upd()"> <i id='slider_h_k2_txt'></i> h_k2 ? 1/3<br>
-<input id='slider_h_k3' type="range" min="-50" max="500" value="300" oninput="h_k3=value/100;$tx('slider_h_k3_txt', h_k3);URL_upd()"> <i id='slider_h_k3_txt'></i> h_k3 ? 3<br>
-<input id='slider_h_k4' type="range" min="-200" max="1900" value="600" oninput="h_k4=value/100;$tx('slider_h_k4_txt', h_k4);URL_upd()"> <i id='slider_h_k4_txt'></i> h_k4 mul<br>
-<input id='slider_h_k5' type="range" min="0" max="100" value="0" oninput="h_k5=value/100;$tx('slider_h_k5_txt', h_k5);URL_upd()"> <i id='slider_h_k5_txt'></i> h_k5 black point<br>
-<input id='slider_h_k6' type="range" min="10" max="100" value="100" oninput="h_k6=value/100;$tx('slider_h_k6_txt', h_k6);URL_upd()"> <i id='slider_h_k6_txt'></i> h_k6 light<br>
+<select id="sw_hist_mode" onchange="stt.hist_mode=value;URL_upd()">
+<option value="0">hist[i]=step_i;//write history</option>
+<option value="continue">if(hist[i]) step_i=hist[i];// continue history from arr</option>
+<option value="continueNew">if(step_i&rt;hist[i]+1000) step_i=hist[i];// continue history from arr if it is not old</option>
+<option value="avg">step_i=(arrHist[pos]+step_i)/2;// average history from arr</option>
+</select>
+<select id="sw_hist_incr_mode" onchange="stt.hist_incr_mode=value;URL_upd()">
+<option value="0">++</option>
+<option value="no">not increment</option>
+<option value="unvisited">unvisited</option>
+<option value="visited">visited</option>
+<option value="visitOld">visitOld</option>
+</select>
 
-<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="zoom=value/50; if(zoom>0.7&&zoom<1.3)zoom=1; $tx('slider_zoom_txt', zoom);URL_upd()" title='If dont move - see browser console for fix'> <i id='slider_zoom_txt'></i> zoom (bettter use mouse).<br>
+<br>
+<button name='show_arr' class='shrtcutBtn grA' tag='v' title='count'>arrVisits</button>
+<button name='show_arr' class='shrtcutBtn grA' tag='d'title='+=this.dir'>arrDir_last</button>
+<button name='show_arr' class='shrtcutBtn grA' tag='e'title='=this.dir'>arrHistDir_E</button>
+<button name='show_arr' class='shrtcutBtn grA' tag='r'title='not overflowed by %4 (or %8)'>arrHistDirAbs</button>
+<button name='show_arr' class='shrtcutBtn grA' tag='s'title='s'>arrHist_rotSpeed</button>
+<br>
+<input id='slider_del_field_if_step_i' type="range" min="0" max="128" value="0" oninput="stt.del_field_if_step_i=value*1000; $tx('slider_del_field_txt', value);URL_upd();"> <i id='slider_del_field_txt'></i>k, delete field if step is older
+<br>
+<input id='slider_speed' type="range" min="0" max="200" value="10" oninput="stt.speed=Math.pow(this.value,3);$tx('slider_speed_txt',stt.speed);URL_upd();"> <i id='slider_speed_txt'>sim </i> speed ops/Frame<br>
+<input id='slider_zoom' type="range" min="1" max="100" value="33" oninput="stt.zoom=value/50; if(stt.zoom>0.7&&stt.zoom<1.3)stt.zoom=1; $tx('slider_zoom_txt', stt.zoom);URL_upd()" title='If dont move - see browser console for fix'> <i id='slider_zoom_txt'></i> zoom (bettter use mouse).<br>
+<br><hr>
+Colorization<br>
+<script>
+//https://learn.javascript.ru/indexeddb
+//https://gist.github.com/JamesMessinger/a0d6389a5d0e3a24814b
+var indexedDB = window.indexedDB;
+// Open (or create) the database
+var open = indexedDB.open("presets", 1);
+
+// Create the schema
+open.onupgradeneeded = function() {
+    var db = open.result;
+	if (!db.objectStoreNames.contains('colorize')) {
+    var store = db.createObjectStore("colorize", {keyPath: "nm"});
+	}
+    //var index = store.createIndex("NameIndex", ["name.last", "name.first"]);
+};
+
+open.onsuccess = function() {
+    // Start a new transaction
+    var db = open.result;
+    var tx = db.transaction("colorize", "readwrite");
+	
+    var store = tx.objectStore("colorize");
+	
+    //var index = store.index("NameIndex");
+
+    // Add some data
+    //store.put({id: 12345, name: {first: "John", last: "Doe"}, age: 42});
+    //store.put({id: 67890, name: {first: "Bob", last: "Smith"}, age: 35});
+    
+    // Query the data
+    //var getJohn = store.get(12345);
+    //var getBob = index.get(["Smith", "Bob"]);
+
+    //getJohn.onsuccess = function() {
+    //    console.log(getJohn.result.name.first);  // => "John"
+   // };
+
+/*
+    getBob.onsuccess = function() {
+        console.log(getBob.result.name.first);   // => "Bob"
+    };*/
+
+    // Close the db when the transaction is done
+    tx.oncomplete = function() {
+        db.close();
+    };
+}
+
+
+function colorizeSave(){
+	var open_colorizeSave = indexedDB.open("presets", 1);
+	
+	let nm = prompt("preset unique name", rand());
+	cccont.nm=nm;
+	
+	open_colorizeSave.onsuccess = function() {
+		var db = open_colorizeSave.result;
+		var tx = db.transaction("colorize", "readwrite");
+		var store = tx.objectStore("colorize");
+		store.put(cccont);
+	}
+}
+
+var ccconts=[];
+function DB_listAll(){
+	var open_colorizeLoad = indexedDB.open("presets", 1);
+	
+	open_colorizeLoad.onsuccess = function() {
+	var db = open_colorizeLoad.result;
+	var tx = db.transaction("colorize", "readwrite");
+	var store = tx.objectStore("colorize");
+	
+	var getall = store.getAll();
+    getall.onsuccess = function() {
+		ccconts=getall.result;							//console.log(ccconts,JSON.stringify(ccconts)); //TODO export import
+		/*
+file:///C:/_wr/TjurmiteHQ_Langtons_ant_nest/js/webGL_datGUI.htm?h=512&w=1024&zoom=1&speed=100&AudioFreqMul=1.01&xx=0&yy=0&&h_incr=0.000169&h_mul=2916&h_k0=0&h_k1=0.67&h_k2=0.33&h_k3=3&h_k4=6&clamp_limit=0.1
+file:///C:/_wr/TjurmiteHQ_Langtons_ant_nest/js/webGL_datGUI.htm?h=512&w=1024&zoom=1&speed=100&AudioFreqMul=1.01&xx=0&yy=0&h_incr=0.000169&h_mul=2916&h_k0=0&h_k1=0.67&h_k2=0.33&h_k3=3&h_k4=6&clamp_limit=0.1&&h_incr=0.001&h_mul=1800&h_k0=0&h_k1=0.67&h_k2=0.33&h_k3=3&h_k4=6
+	*/
+
+		for(let i=0;i<ccconts.length;i++){
+			$('sel_colorizeLoad').innerHTML+="<option value='"+ccconts[i].nm+"'>"+ccconts[i].nm+"</option>"
+		}
+    };
+	/*
+	var getNm = store.getAll(nm);
+    getNm.onsuccess = function() {
+		cccont=getNm.result;				console.log(cccont);
+		URL_upd();
+    };
+	*/
+	}
+}
+
+function colorizeLoad(nm){
+	if(nm=='0') {
+	 cccont=cccont_default();
+	 ccc=cccont.ccc;
+	 //TODO del from url
+	 return;
+	}
+	
+	for(let i=0;i<ccconts.length;i++){
+		if(ccconts[i].nm===nm) 
+		{
+			cccont=ccconts[i];
+			ccc=cccont.ccc;
+			URL_upd();
+			//TODO all UI upd
+		}
+	}
+}
+
+
+</script>
+presets (or bookmark this page):
+<select id='sel_colorizeLoad' onchange="colorizeLoad(value);">
+ <option value="0">default</option>
+</select>
+<button onclick='colorizeSave()'>save to browser DB</button>
+<br>
+modes, shaders:
+<br>
+<input id='slider_h_incr' type="range" min="0" max="200" value="1" oninput="ccc.h_incr=Math.pow(value*0.001,2); $tx('slider_h_incr_txt', ccc.h_incr.toFixed(6));URL_upd();"> <i id='slider_h_incr_txt'></i> h_incr<br>
+<input id='slider_h_mul' type="range" min="1" max="200" value="40" oninput="ccc.h_mul=Math.pow(value,2);$tx('slider_h_mul_txt', ccc.h_mul*h_mul_mul.toFixed(8)); URL_upd();"> <i id='slider_h_mul_txt'></i> h_mul<br>
+<input id='slider_h_k0' type="range" min="-50" max="200" value="100" oninput="ccc.h_k0=value/100;$tx('slider_h_k0_txt', ccc.h_k0);URL_upd()"> <i id='slider_h_k0_txt'></i> h_k0 ? 1<br>
+<input id='slider_h_k1' type="range" min="-50" max="200" value="66" oninput="ccc.h_k1=value/100;$tx('slider_h_k1_txt', ccc.h_k1);URL_upd()"> <i id='slider_h_k1_txt'></i> h_k1 ? 2/3<br>
+<input id='slider_h_k2' type="range" min="-50" max="200" value="33" oninput="ccc.h_k2=value/100;$tx('slider_h_k2_txt', ccc.h_k2);URL_upd()"> <i id='slider_h_k2_txt'></i> h_k2 ? 1/3<br>
+<input id='slider_h_k3' type="range" min="-50" max="500" value="300" oninput="ccc.h_k3=value/100;$tx('slider_h_k3_txt', ccc.h_k3);URL_upd()"> <i id='slider_h_k3_txt'></i> h_k3 ? 3<br>
+<input id='slider_h_k4' type="range" min="-200" max="1900" value="600" oninput="ccc.h_k4=value/100;$tx('slider_h_k4_txt', ccc.h_k4);URL_upd()"> <i id='slider_h_k4_txt'></i> h_k4 mul<br>
+<input id='slider_h_kBk' type="range" min="0" max="100" value="0" oninput="ccc.h_kBk=value/100;$tx('slider_h_kBk_txt', ccc.h_kBk);URL_upd()"> <i id='slider_h_kBk_txt'></i> h_kBk black point<br>
+<input id='slider_h_kLi' type="range" min="10" max="100" value="100" oninput="ccc.h_kLi=value/100;$tx('slider_h_kLi_txt', ccc.h_kLi);URL_upd()"> <i id='slider_h_kLi_txt'></i> h_kLi light<br>
+<input id='slider_clamp_limit' type="range" min="10" max="100" value="100" oninput="ccc.clamp_limit=value/100;$tx('slider_clamp_limit_txt', ccc.clamp_limit);URL_upd()"> <i id='slider_clamp_limit_txt'></i> if c&rtlimit c= rest<br>
+<input id='slider_clamp_rest' type="range" min="0" max="90" value="10" oninput="ccc.clamp_rest=value/100;$tx('slider_clamp_rest_txt', ccc.clamp_rest);URL_upd()"> <i id='slider_clamp_rest_txt'></i> clamp_rest<br>
+
+
 </fieldset>
 </div>
 
 
-<div class="hor">
+<div class="pan">
 <fieldset>
 <legend style="border: 1px solid; width:500px;">
-<span class='label'>settings of current ant</span><select id="new_antFuncs" onclick="select_ant(this)" class="abs"></select><span class='r w3-bar-item w3-btn' onclick="new_ant(ant)">new_ant</span><span class='r w3-bar-item w3-btn' onclick="new_ant(ant_f)">new_ant float</span>
+<span class='label'>settings of current ant</span><select id="new_antFuncs" onclick="select_ant(this)" class="dropmenu"></select><span class='r w3-bar-item w3-btn' onclick="new_ant(ant)">new_ant</span><span class='r w3-bar-item w3-btn' onclick="new_ant(ant_f)">new_ant float</span>
 </legend>
 <input id='sliderdirM_L' type="range" min="2" max="100" value="3" oninput="dirM_L=Math.min(this.value,dirM); $tx('sliderdirM_L_txt', dirM_L)">
 <i id='sliderdirM_L_txt'>3</i>dirM_L max dir when turn left, 3 by default, cant be more than dirM<br>
@@ -423,12 +641,12 @@ function ySub_set(v, bSetRangeValue){
 }
 </script>
 </legend>
-<br style="display: block; margin: 4px 0; content:'';">antFunc <select id="antFuncs" onclick="setantFunc(this.value)" class="abs"></select><br>
+<br style="display: block; margin: 4px 0; content:'';">antFunc <select id="antFuncs" onclick="setantFunc(this.value);URL_upd()" class="dropmenu"></select><br>
 </fieldset>
 </div>
 
 
-<div class="hor">
+<div class="pan">
 <fieldset id='audio_panel'>
 <legend>
 <div class="w3-bar w3-black">
@@ -447,7 +665,7 @@ from hist<br>
 </div>
 
 
-<div class="hor">
+<div class="pan">
 <fieldset class='flex'>
 <legend>
 <div>
@@ -464,13 +682,13 @@ pattern:<br>
 <input id='canvasFill_hE' type="range" min="1" max="8" value="2" oninput="canvasFill_hE=this.value;drawBox(); $tx('canvasFill_hE_txt', canvasFill_hE)"><i id='canvasFill_hE_txt'></i> h<br>
 TODO color to be same as in shader, same as in ant function<br>
 <input id='slider_fieldAdd' type="range" min="-32" max="64" value="0" oninput="fieldAdd=value; $tx('slider_fieldAdd_txt', value);URL_upd()"> add to field each <i id='slider_fieldAdd_txt'></i> turn. 0 is OFF<br>
-<input id='sw_bfieldAdd_lim' type="checkbox" oninput="bfieldAdd_lim=checked;URL_upd()"> only if field in range 0...255<br>
+<input id='sw_bfieldAdd_lim' type="checkbox" oninput="stt.bfieldAdd_lim=checked;URL_upd()"> only if field in range 0...255<br>
 </div>
 </fieldset>
 </div>
 
 
-<div class="hor">
+<div class="pan">
 <canvas id='canvas' class='viewport'></canvas>
 </div>
 
@@ -478,25 +696,100 @@ TODO color to be same as in shader, same as in ant function<br>
 
 
 <script> //init
+var panZindex_last=0;
+var pan_sel_last=null;
+var bpanDragWOCtrl=false;
+function draggable(el, allowedChild) {
+  el.addEventListener('mousedown', function(e) {
+    var offsetX = e.clientX - parseInt(window.getComputedStyle(this).left);
+    var offsetY = e.clientY - parseInt(window.getComputedStyle(this).top);
+    
+    function mouseMoveHandler(e) {//console.log(e.target, this)
+		//&&(this === e.target ||e.target.tagName==allowedChild)) //prevent event bubbling from child unless hold CTRL 
+		if(bpanDragWOCtrl || e.ctrlKey) { 
+		  el.style.top = (e.clientY - offsetY) + 'px';
+		  el.style.left = (e.clientX - offsetX) + 'px';
+		  if(pan_sel_last!=el)
+		  {
+			pan_sel_last=el;
+			panZindex_last++;
+			el.style.zIndex=panZindex_last;
+		  }
+	  }
+    }
+
+    function reset() {
+      el.removeEventListener('mousemove', mouseMoveHandler);
+      el.removeEventListener('mouseup', reset);
+	  posSave(el.id, el.style.left, el.style.top, el.style.zIndex);
+    }
+
+    el.addEventListener('mousemove', mouseMoveHandler);
+    el.addEventListener('mouseup', reset);
+	
+
+  });
+}
+
+
+var panel_load_i=0;
+function posSave(id,x,y,z){
+	localStorage.setItem(id+'x', x);
+	localStorage.setItem(id+'y', y);
+	localStorage.setItem(id+'z', z);
+}
+function posLoad(el){
+	let x=localStorage.getItem(el.id+'x');
+	let y=localStorage.getItem(el.id+'y');
+	let z=localStorage.getItem(el.id+'z');
+
+	if(x==null) {
+		x=10+panel_load_i*80+'px';
+		y=20+panel_load_i*50+'px';
+		z=panel_load_i;
+	}
+
+	el.style.left=x;
+	el.style.top=y;
+	el.style.zIndex=z;						//console.log(panel_load_i,x,y,z);
+	panel_load_i++;
+}
+function posReset(){
+	localStorage.clear(); 
+	window.location.reload();
+}
+
+
 window.onload=setup;
 function setup(){
 	resetwh();
 	setupWebGL();
 	addEvents_panZoom_ToCanvasView(canvas);
 	createGUI();
+	DB_listAll();
+	
+	let es=document.getElementsByClassName('pan');
+	for(let i=0;i<es.length;i++)
+	{
+		let e=es[i];
+		e.id='p'+i;
+		posLoad(e);
+		draggable(es[i],'FIELDSET');
+	}
 //-------- ant
 
-	ant.antFunc=antFF.RL;
-	ant_f.antFunc=antFF_f.RL;
+	ant.antFunc=(typeof stt.a0!='undefined')?antFF[stt.a0]:antFF.RL;// TODO need to create all saved ants, not only set default 1
+	ant_f.antFunc=(typeof stt.a0!='undefined')?antFF_f[stt.af0]:antFF_f.RL;
 	new_ant(ant) //start with integer ant as it simpler and easy to make good audio
 	//new_ant(ant_f)
-//-------- shrtcutBtn events
-	let ar=document.getElementsByClassName('shrtcutBtn'); //### groups
+
+//-------- shrtcutBtn grA events
+	let ar=document.getElementsByClassName('grA'); //### groups
 	for(let i=0;i<ar.length;i++)
 	{
 		let k=ar[i].attributes.tag.value;
 		
-		ar[i].id='shrtcutBtn'+k;
+		ar[i].id='grA'+k;
 		ar[i].addEventListener('click', shrtcutBtn_click);
 		let K=k.toUpperCase(); //k is lower case
 		let str=ar[i].innerText;
@@ -568,14 +861,13 @@ sel.addEventListener('mouseenter', antFuncs_sel_dropdown);
 sel.addEventListener('mouseleave', antFuncs_sel_off);
 
 
-
 function antFuncs_sel_dropdown(e){
 e.target.setAttribute('size',e.target.length)
-e.target.style.zIndex=9;
+//e.target.style.zIndex=9999;
 }
 function antFuncs_sel_off(e){
 e.target.removeAttribute('size')
-e.target.style.zIndex=0;
+//e.target.style.zIndex=0;
 }
 
 function select_ant_sel_dropdown(e){
@@ -603,8 +895,10 @@ function recreate_ants_sel_list()
 
 
 function setantFunc(nm){
+	if(!nm || !antFF[nm]) return;//###
 	ant_selected.antFunc=antFF[nm]; //console.log(nm,antFF[nm]);
-	recreate_ants_sel_list();
+	stt.a0=nm;
+	recreate_ants_sel_list();//###???
 	//!upd ants list
 }
 
@@ -684,9 +978,9 @@ drawBox();
 
 function fill_field(b_fill_w_pattern)
 {
-	for(let y=0, n=0;y<hh;y++){
-		for(let x=0;x<ww;x++,n++) {
-			let pos=y*ww+x;
+	for(let y=0, n=0;y<stt.h;y++){
+		for(let x=0;x<stt.w;x++,n++) {
+			let pos=y*stt.w+x;
 			 field[pos]= b_fill_w_pattern ?
 				canvasFil_patternlArr[x%canvasFill_wE+(y%canvasFill_hE)*canvasFil_patternlArrSizeM]*222/colorFill_iE //fill field with pattern from canvasFil_patternlArr
 				: 0; 
@@ -726,7 +1020,7 @@ var dragStart,dragged;
 var zoom_t=1;
 
 function addEvents_panZoom_ToCanvasView(canvasView)
-{	//console.log(ww,hh,lastX,lastY)
+{	//console.log(stt.w,stt.h,lastX,lastY)
 	lastX=canvasView.width/2;
 	lastY=canvasView.height/2;
 
@@ -746,8 +1040,8 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 			//pt = ctxView.transformedPoint(lastX,lastY);
 			//ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
 			//redraw();
-			xx=(lastX-dragStart[0])/canvasView.width*zoom+dragEnd_dX;
-			yy=(lastY-dragStart[1])/canvasView.height*zoom+dragEnd_dY;	//console.log(xx,yy)
+			stt.xx=(lastX-dragStart[0])/canvasView.width*stt.zoom+dragEnd_dX;
+			stt.yy=(lastY-dragStart[1])/canvasView.height*stt.zoom+dragEnd_dY;	//console.log(stt.xx,stt.yy)
 		}
 				//console.log(lastX,lastY)
 				if(il%16==0)	URL_upd();
@@ -758,8 +1052,8 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 		if (!dragged) Zoom(evt.shiftKey ? -1 : 1 );
 		else
 		{
-			dragEnd_dX=xx;
-			dragEnd_dY=yy;
+			dragEnd_dX=stt.xx;
+			dragEnd_dY=stt.yy;
 			//console.log(dragEnd_dX,dragEnd_dY)
 			URL_upd();
 		}
@@ -775,16 +1069,16 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 		//redraw();
 	}
 
-	var handleScroll = function(evt){ //console.log(evt.wheelDelta, zoom)
-		zoomOld=zoom;
-		zoom_t*=evt.wheelDelta>0?0.9:1.1;		if(zoom_t>0.8&&zoom_t<1.2) zoom=1; else zoom=zoom_t;
-		$('slider_zoom').value=zoom*50;
+	var handleScroll = function(evt){ //console.log(evt.wheelDelta, stt.zoom)
+		zoomOld=stt.zoom;
+		zoom_t*=evt.wheelDelta>0?0.9:1.1;		if(zoom_t>0.8&&zoom_t<1.2) stt.zoom=1; else stt.zoom=zoom_t;
+		$('slider_zoom').value=stt.zoom*50;
 		URL_upd();
 		
-		xx+=lastX/canvasView.width*(zoom-zoomOld);
-		yy+=lastY/canvasView.height*(zoom-zoomOld);
-		dragEnd_dX=xx;
-		dragEnd_dY=yy;
+		stt.xx+=lastX/canvasView.width*(stt.zoom-zoomOld);
+		stt.yy+=lastY/canvasView.height*(stt.zoom-zoomOld);
+		dragEnd_dX=stt.xx;
+		dragEnd_dY=stt.yy;
 		
 		//var delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
 		//if (delta) Zoom(delta);
@@ -839,8 +1133,11 @@ uniform float h_k1;
 uniform float h_k2;
 uniform float h_k3;
 uniform float h_k4;
-uniform float h_k5; //min (black point)
-uniform float h_k6; //light max
+uniform float h_kBk; //0//min (black point)
+uniform float h_kLi; //1//light max
+uniform float clamp_limit;//1
+uniform float clamp_rest;//0
+
 uniform float zoom;
 
 /*
@@ -865,7 +1162,11 @@ vec3 hsv2rgb(vec3 c)
 	//return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 	vec4 K = vec4(h_k0, h_k1, h_k2, h_k3); //! TODO i want more palette control control, some gradients with 'stops'. And some with this bars
 	vec3 p = abs(fract(c.xxx + K.xyz) * h_k4 - K.www);
-	return c.z * mix(K.xxx, clamp(p - K.xxx, h_k5, h_k6), c.y);
+	c=c.z * mix(K.xxx, clamp(p - K.xxx, h_kBk, h_kLi), c.y);
+
+	c = mix(c, c*clamp_rest, step(clamp_limit,min(c.x,min(c.y,c.z))));	//=== if(c.x>0.8 && c.y>0.8 && c.z>0.8) c*=0.1;
+	return c;
+	//return c.z * mix(K.xxx, clamp(p - K.xxx, h_kBk, h_kLi), c.y);
 }
 /*
 // Official HSV to RGB conversion 
@@ -963,17 +1264,17 @@ for(let y=0, n=0;y<tex_size;y++){
 	}
 }
 		
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); //working
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, stt.w, stt.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); //working
 
 texArr_RGBA8=new Uint8Array(tex_size*tex_size*4);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, texArr); //working
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, stt.w, stt.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, texArr); //working
 
 
 texArr_32F=new Float32Array(tex_size*tex_size);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, ww, hh, 0, gl.R32F, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, stt.w, stt.h, 0, gl.R32F, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
 
 texArr_RGBA32F=new Float32Array(tex_size*tex_size*4);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, stt.w, stt.h, 0, gl.RGBA, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
 */
 
 let floatTextures = gl.getExtension('OES_texture_float'); if (!floatTextures) { alert('no floating point tex support');/*use color.r + color.g * 256.0f*/}
@@ -999,10 +1300,10 @@ let ant_step_i_last=0;
 
 function loop(timestamp) {
 timestamp=timestamp_t //!fix something increment this if delete this it will still increasing %\
-timestamp_t+=h_incr*h_incr_mul;
+timestamp_t+=ccc.h_incr*h_incr_mul;
 	var t0=window.performance.now();
 	
-	for (let i = 0; i < speed; i++) { //100000000 =10M=1s on opera2020  //310+35ms separate field arr
+	for (let i = 0; i < stt.speed; i++) { //100000000 =10M=1s on opera2020  //310+35ms separate field arr
 		for(let i=0;i<ants.length;i++)
 		{
 		 ants[i].run();
@@ -1013,7 +1314,7 @@ timestamp_t+=h_incr*h_incr_mul;
 	{
 		for(let i=0;i<wh;i++)
 		{
-			if( !bfieldAdd_lim || (field[i]>0 || field[i]<=255) )
+			if( !stt.bfieldAdd_lim || (field[i]>0 || field[i]<=255) )
 			{
 				field[i]--;
 			}
@@ -1023,21 +1324,32 @@ timestamp_t+=h_incr*h_incr_mul;
 
 /*
 			c = ((i & 8) ^ (j & 8))*255;
-texArr[(y*ww+x)*4] = 222; // Red component
-texArr[(y*ww+x)*4+1] = 111; // Green component
-texArr[(y*ww+x)*4+2] = c; // Blue component
-texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
+texArr[(y*stt.w+x)*4] = 222; // Red component
+texArr[(y*stt.w+x)*4+1] = 111; // Green component
+texArr[(y*stt.w+x)*4+2] = c; // Blue component
+texArr[(y*stt.w+x)*4+3] = 0xff; // Alpha component
 */
-
-	switch(showArr)
+for(let i=0;i<wh;i++){
+	if(stt.del_field_if_step_i>0 && arrHist[i]<ants[0].step_i_real-stt.del_field_if_step_i)
+	{
+		field[i]=0;
+		arrHist[i]=0;//TODO settings
+		arrVisits[i]=0;
+		arrDir_last[i]=0;
+		arrHistDir_E[i]=0;
+		arrHistDirAbs[i]=0;
+		arrHist_rotSpeed[i]=0;
+	}
+}
+	switch(stt.showArr)
 	{
 		default:
 		case 'field':
 		h_mul_mul=0.0000005;
 		h_incr_mul=0;
-		//for(let y=0, n=0;y<hh;y++){
-		//for(let x=0;x<ww;x++,n++) {
-			//let pos=x*hh+y;
+		//for(let y=0, n=0;y<stt.h;y++){
+		//for(let x=0;x<stt.w;x++,n++) {
+			//let pos=x*stt.h+y;
 		//	let value = field[n];
 			//if(value==0&&buffer32[n]==0) continue; //skip unused
 			//if(value!=0&& buffer32[n]!=0) continue;
@@ -1047,7 +1359,6 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		//}
 
 		for(let i=0;i<wh;i++){
-												if(del_field_if_step_i>0 && arrHist[i]<ants[0].step_i_real-del_field_if_step_i) field[i]=0;
 			texArr[i] = field[i];
 			//if(arrVisits[i]<3){texArr[i] = field[i];} //only first
 			//else {texArr[i]++}
@@ -1096,7 +1407,7 @@ texArr[(y*ww+x)*4+3] = 0xff; // Alpha component
 		break;
 	}
 
- //var rgbaTex = textureFromPixelArray(gl, texArr, gl.RGBA, ww, hh); //convert texArr to Uint8Array
+ //var rgbaTex = textureFromPixelArray(gl, texArr, gl.RGBA, stt.w, stt.h); //convert texArr to Uint8Array
 
 if(il==0){
 	resizeCanvasToDisplaySize(gl.canvas); //need every time after resize TODO2 resize wo reload . 
@@ -1108,7 +1419,7 @@ if(il==0){
   gl.bindTexture(gl.TEXTURE_2D, textureField);
 
   let texWrap=gl.CLAMP_TO_EDGE;
-  if(powerOf2(ww) && powerOf2(hh)) // can't have repeating non power of 2 textures, but CLAMP_TO_EDGE is allowed
+  if(powerOf2(stt.w) && powerOf2(stt.h)) // can't have repeating non power of 2 textures, but CLAMP_TO_EDGE is allowed
   {
 	texWrap=gl.REPEAT;
   }  else {   console.log('wrap disabled: NPOT texure size')  }
@@ -1118,25 +1429,27 @@ if(il==0){
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 }
   // Upload the image into the texture.
-  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, hh, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); // new Uint8Array(texArr)
-  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(texArr));
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ww, hh, 0, gl.LUMINANCE, gl.FLOAT, texArr);
+  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, stt.w, stt.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); // new Uint8Array(texArr)
+  //gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, stt.w, stt.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(texArr));
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, stt.w, stt.h, 0, gl.LUMINANCE, gl.FLOAT, texArr);
 	
   gl.uniform1f(timestampId, timestamp);
-  gl.uniform1f(h_mulId, h_mul*h_mul_mul);
-  gl.uniform1f(h_k0Id, h_k0);
-  gl.uniform1f(h_k1Id, h_k1);
-  gl.uniform1f(h_k2Id, h_k2);
-  gl.uniform1f(h_k3Id, h_k3);
-  gl.uniform1f(h_k4Id, h_k4);
-  gl.uniform1f(h_k5Id, h_k5);
-  gl.uniform1f(h_k6Id, h_k6);
-  gl.uniform1f(zoomId, zoom);
-  gl.uniform2f(view_centerId, xx,yy);
+  gl.uniform1f(h_mulId, ccc.h_mul*h_mul_mul);
+  gl.uniform1f(h_k0Id, ccc.h_k0);
+  gl.uniform1f(h_k1Id, ccc.h_k1);
+  gl.uniform1f(h_k2Id, ccc.h_k2);
+  gl.uniform1f(h_k3Id, ccc.h_k3);
+  gl.uniform1f(h_k4Id, ccc.h_k4);
+  gl.uniform1f(h_kBkId, ccc.h_kBk);
+  gl.uniform1f(h_kLiId, ccc.h_kLi);
+  gl.uniform1f(clamp_limitId, ccc.clamp_limit);
+  gl.uniform1f(clamp_restId, ccc.clamp_rest);
+  gl.uniform1f(zoomId, stt.zoom);
+  gl.uniform2f(view_centerId, stt.xx,stt.yy);
   //gl.uniform1i(texId, tar); //unnecessary
 
   gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);  //console.log('res canvas',gl.canvas.width, gl.canvas.height); // set the resolution
-  gl.uniform2f(textureSizeLocation, ww, hh); //console.log('tex canvas',ww, hh); // set the size of the image
+  gl.uniform2f(textureSizeLocation, stt.w, stt.h); //console.log('tex canvas',stt.w, stt.h); // set the size of the image
 		 //console.log(gl.canvas.width,gl.canvas.height);
   
   // Draw the rectangle.
@@ -1222,7 +1535,7 @@ function swStartStop(b) //true to start.	undefined to toggle
 
 	//canvas.onclick=sw_bAudioOFF	//document.onclick=sw_bAudioOFF
 function init_Audio(){
-	if(bAudioOFF==true || bStop) return; //dont neeed if Stop or mutted
+	if(stt.bAudioOFF==true || bStop) return; //dont neeed if Stop or mutted
 	context = new(window.AudioContext || window.webkitAudioContext)();
 	osc = context.createOscillator(); 
 	// Sine is the default type. Also available: square, sawtooth and triangle waveforms.
@@ -1236,13 +1549,13 @@ function init_Audio(){
 
  //this is not solving alert "The AudioContext was not allowed to start"
 function sw_bAudioOFF(b){
-	if(b===undefined || typeof b!="boolean") bAudioOFF=!bAudioOFF;
-	else bAudioOFF=b;
+	if(b===undefined || typeof b!="boolean") stt.bAudioOFF=!stt.bAudioOFF;
+	else stt.bAudioOFF=b;
 	
 	bAudioOFF_updView();
 	
 	//----- disable if need
-	if(bAudioOFF)
+	if(stt.bAudioOFF)
 	{
 	 if(osc) osc.disconnect();
 	 return;
@@ -1254,7 +1567,7 @@ function sw_bAudioOFF(b){
 }
 
 function sw_audio(b){ //TODO osc.start/stop insdead
- if(bAudioOFF || !b){
+ if(stt.bAudioOFF || !b){
 	if(osc) osc.disconnect();
 	bAudioGen=false;
  }
@@ -1267,7 +1580,7 @@ function sw_audio(b){ //TODO osc.start/stop insdead
 }
 
 function bAudioOFF_updView(){
- if(bAudioOFF) 
+ if(stt.bAudioOFF) 
 	$('audio_panel').classList.add('off');
  else
 	$('audio_panel').classList.remove('off');
@@ -1287,7 +1600,7 @@ function setupWebGL()
   // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
   // Set a rectangle the same size as the image.
-  setRectangle(gl, 0, 0, ww, hh);														//console.log(ww,hh);
+  setRectangle(gl, 0, 0, stt.w, stt.h);														//console.log(stt.w,stt.h);
 
   // provide texture coordinates for the rectangle.
   var texcoordBuffer = gl.createBuffer();
@@ -1350,8 +1663,10 @@ function setupWebGL()
   const h_k2Id = gl.getUniformLocation(programInfo.program, 'h_k2');
   const h_k3Id = gl.getUniformLocation(programInfo.program, 'h_k3');
   const h_k4Id = gl.getUniformLocation(programInfo.program, 'h_k4');
-  const h_k5Id = gl.getUniformLocation(programInfo.program, 'h_k5');
-  const h_k6Id = gl.getUniformLocation(programInfo.program, 'h_k6');
+  const h_kBkId = gl.getUniformLocation(programInfo.program, 'h_kBk');
+  const h_kLiId = gl.getUniformLocation(programInfo.program, 'h_kLi');
+  const clamp_limitId = gl.getUniformLocation(programInfo.program, 'clamp_limit');
+  const clamp_restId = gl.getUniformLocation(programInfo.program, 'clamp_rest');
   const zoomId = gl.getUniformLocation(programInfo.program, 'zoom');
   const view_centerId = gl.getUniformLocation(programInfo.program, 'view_center');
   

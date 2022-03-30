@@ -314,7 +314,12 @@ var ant = {
 			dir : 0,
 			x : xc, 
 			y: yc,
-			
+//-- temp for audio
+	visit_last:0,
+	xt:0,
+	yt:0,
+	speed_measured:0,
+//--
 			centerXY: function ()
 			{
 			 this.x=~~xc;
@@ -341,7 +346,7 @@ var ant = {
 				}
 
 				//var c=buffer32[this.y*dataSize+this.x] >> 16&255; //R
-				let pos=this.y*stt.w+this.x;
+				let pos=this.y*ss.w+this.x;
 				
 				//this.antFunc(this, pos);
 				this.antFunc(this, pos);//#opt
@@ -358,7 +363,7 @@ var ant = {
 				let bVisited=arrHist[pos]!=0;
 				let arrHist_pos=arrHist[pos];
 				
-				switch(stt.hist_mode)
+				switch(ss.hist_mode)
 				{
 					case "continue":
 						if(bVisited) // visited
@@ -398,7 +403,7 @@ var ant = {
 				//this.rotSpeed*=0.95; 
 				arrHist_rotSpeed[pos]=this.rotSpeed;
 				
-				switch(stt.hist_incr_mode)
+				switch(ss.hist_incr_mode)
 				{
 					case "no":
 					break;
@@ -489,7 +494,7 @@ var ant_fdir = {
 				}
 				
 
-				let pos=this.x*stt.h+this.y;
+				let pos=this.x*ss.h+this.y;
 				
 				//this.antFunc(this, pos);
 				switch (field[pos])
@@ -533,6 +538,7 @@ var ant_f = {
 			xSub:0.2,
 			ySub:0.2,
 
+
 			centerXY: function ()
 			{
 			 this.x=~~xc;
@@ -569,8 +575,8 @@ var ant_f = {
 
 				 let x=Math.abs(~~this.x%xM);
 				 let y=Math.abs(~~this.y%yM);
-				let pos=x*stt.h+y;
-				//let pos=~~((this.x)*stt.h+(this.y)); //this make 4x trails
+				let pos=x*ss.h+y;
+				//let pos=~~((this.x)*ss.h+(this.y)); //this make 4x trails
 
 				
 				//this.antFunc(this, pos);

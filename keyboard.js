@@ -4,12 +4,11 @@ function setSpeed(v){
 	else
 	{
 		v=Math.pow(10,v-1);
-		if(speed==v) {swStartStop();}
-		else {speed=v;  if(bStop) swStartStop(true); }
+		v=Math.pow(v,1/3);
+		if(ss.speed==v) {swStartStop();}
+		else {stt.speed=v;  if(bStop) swStartStop(true); }
 	}
-	if(Math.abs(speed)>10000000) speed=10000000;
-	$('slider_speed').value=Math.pow( speed, 0.333333);
-	$tx("slider_speed_txt",speed);	//console.log(speed);
+	if(Math.abs(ss.speed)>10000000) stt.speed=10000000;
 }
 
 //var bMobile = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)|(android)|(webOS)/i)
@@ -49,25 +48,23 @@ document.body.onkeydown = function(e){
 		}
 	}
 }
-
-function sortcutPress(k){
+//to use it set id or mane='shrtcutBtn'+k , where k is key
+function sortcutPress(k){ //console.log(k)
+	let id='shrtcutBtn'+k;
 	//stt.showArr=(showArrSortcuts[k]!==undefined)?showArrSortcuts[k]:'field'; //without btns
-	el=$('shrtcutBtn'+k);
+	el=$(id);
 	if(el!=null) el.click();
+	else{
+		el=document.getElementsByName(id)[0];
+		if(el!=null) el.click();
+	}
 }
 var shrtcutBtn_last=null;
 function shrtcutBtn_click(e){
 	el=e.target;
 	if(el.tagName=='B')el=el.parentElement;
-	
 	if(el==shrtcutBtn_last) return;
-	//#TODO if ! selected group 1 return
-	//class==grA
-	el.classList.toggle('shrtcutBtn_sel');
-	if(shrtcutBtn_last!=null) shrtcutBtn_last.classList.remove('shrtcutBtn_sel');
-	shrtcutBtn_last=el;
-	
-	stt.showArr=el.textContent;	//console.log(e.target.innerText, e.target.textContent);
+	stt.showArr=el.textContent;
 }
 showArrSortcuts=[];//filled with tag titles 'f', 'h' ...
 showArrSortcuts_vk=[];//value:key to search keys

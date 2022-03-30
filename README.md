@@ -36,20 +36,35 @@ test2 webGL 8M ops = 220ms (extended ant mode)+  10~15ms draw
 test1 js 100M ops =936ms
 
 ### implemented key features:
-* change program of walking, programs of visualisation and audiolisation
-* fill field with pattern
-
-Specific to app:
-#### webGL.htm app
-* fast send arrays and settings to shader
-* GL pan, zoom
-
-* multiple ants
-* select ant, view and change properties
+[*] change program of walking, programs of visualisation and audiolisation
+[*] fill field with pattern or function
+[*] save/load parameters
+[*] save/load field to image
+[*] multiple ants
+### Specific to app:
 
 #### webGL.htm app
-* save/load
-* save/load field to image
+[*] fast send arrays and settings to shader
+[*] GPU pan, zoom, colorization
+[*] select ant, view and change properties
+[*] animate camera and parameters
+[*] мultilanguage イnてrface
+[*] draggable panels of inteface, pos are saved
+
+#### TjurmitsHQ.htm app
+[*] Dat.gui, with save/load
+[*] big collection of ants and settings
+
+#### TODO
+[ ] investigate why pattern do not shown
+[ ] load field
+[ ] save localStorage to file
+[ ] save img nm, load
+[ ] save settings to img QR-code
+[ ] negative speed
+[ ] upd pattern from f, or list of pictures in select
+[ ] dont flood URL untill ask of link
+
 
 
 

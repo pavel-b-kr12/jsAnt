@@ -145,12 +145,21 @@ function canvasFill_Click(e) {
 
 function arr_clear_all() //except field
 {
-	for(let i=0;i<wh;i++){
+	for(let i=0;i<tt.wh;i++){
 			 arrHist[i] =0;
 			 arrVisits[i] =0;
 			 arrHistDir_E[i] =0;
 			 arrDir_last[i] =0;
 			 arrHistDirAbs[i] =0;
 			 arrHist_rotSpeed[i] =0;
+			 arrSeq[i] =0;
+
 	}
+	
+	
+	for(let i=0;i<arrAntLastStepC.length;i++) arrAntLastStepC[i]=-1;
+	AntLastStep=0;
+	seq_detect_m=30;
+	seq_detected_shift=0;
+	seq_N=0;
 }

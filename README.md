@@ -56,6 +56,7 @@ test1 js 100M ops =936ms
 [*] big collection of ants and settings
 
 #### TODO
+[ ] filled area per t, 	end point distance per t
 [ ] investigate why pattern do not shown
 [ ] load field
 [ ] save localStorage to file

@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title></title>
+<title>TjurmiteHQ webGL</title>
 <script type="text/javascript" src="lib/dat.gui.min.js"></script>
 <script src="lib/webgl-utils.js"></script>
 
-<script src="common.js"></script> 
-<script src="keyboard.js" defer></script> 
+<script src="lib/common.js"></script> 
+<script src="lib/keyboard.js" defer></script> 
 <script src="fill.js" defer></script> 
-<script src="recorder.js" defer></script> 
+<script src="lib/recorder.js" defer></script> 
+<script src="lib/elementPos.js" defer></script> 
 <script> //settings
-
 var ant_selected=null;
 
 var ss={} //STORAGE to GET settings. object to fast get. DO NOT write here directly or URL and other will not update
@@ -24,19 +24,16 @@ cccont={ //COPY. to store colorize in indexedDB. Need this to keep and get nm, w
 }
 
 var bGUIupd=false;
- function slider_set_v_tx(nmPart,v, tx){//console.log(nmPart+'_slider_txt',v,tx)
+function slider_set_v_tx(nmPart,v, tx){//console.log(nmPart+'_slider_txt',v,tx)
 	$tx(nmPart+'_slider_txt', tx);
 	if(!bGUIupd) return;
 	$('slider_'+nmPart).value=v;
-	
-	//outline: solid 1px red;
- }
-
- function btn_1_highlight(idPart, v){ //console.log(idPart+v)
+}
+function btn_1_highlight(idPart, v){ //console.log(idPart+v)
 	//if(!bGUIupd) return;
 	btn_1_highlight_el($(idPart+v));
- }
- function btn_1_highlight_el(el){	//console.log(el)
+}
+function btn_1_highlight_el(el){	//console.log(el)
 	//if(!bGUIupd) return;
 	el.classList.add('shrtcutBtn_sel');
 	if(shrtcutBtn_last!=null) 
@@ -45,12 +42,11 @@ var bGUIupd=false;
 	
 		//#TODO if ! selected group 1 return
 	//class==grA
- } 
- 
- function select_set(idPart, v){	//console.log(idPart,v)
+}
+function select_set(idPart, v){	//console.log(idPart,v)
 	if(!bGUIupd) return;
 	$(idPart+'_sel').value=v;
- }
+}
 var bNeed_URL_upd=true;
 //##re nm to sst
 var stt={ //object to SET settings and upd GUI
@@ -329,24 +325,32 @@ function addPrecise_setAnimateIncr(nm,v,bGUIupd_, animDeadZone,el)
 }
 
 
-function ssC_default()
+function ssC_defaultCopy()
 {
-bGUIupd=true;
-stt.h_incr=0.001; //dt
-stt.h_mul=0.1;
-stt.h_k0=1;
-stt.h_k1=2/3; //hue rainbow colors positions
-stt.h_k2=1/3;
-stt.h_k3=3;
-stt.h_k4=6;
-stt.h_kBk=0;
-stt.h_kLi=1;
-stt.clamp_limit=1;
-stt.clamp_rest=0;
-bGUIupd=false;
+o=
+{
+	h_incr:0.001, //dt
+	h_mul:0.1,
+	h_k0:1,
+	h_k1:2/3, //hue rainbow colors positions
+	h_k2:1/3,
+	h_k3:3,
+	h_k4:6,
+	h_kBk:0,
+	h_kLi:1,
+	clamp_limit:1,
+	clamp_rest:0,
+}
+return o;
+}
+function ssC_default_set()
+{
+ setSettings_GUIupd(ssC_defaultCopy())
 }
 
-function stt_default(){
+
+
+function stt_default(){//##TODO del, use obj
 bGUIupd=true;
 stt.h=null;stt.w=null;
 
@@ -380,7 +384,7 @@ bGUIupd=false;
 }
 
 
-function paramsTo_stt() {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
+function URL_to_stt() {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
 	bGUIupd=true;
 	let entries=new URLSearchParams(window.location.search);
 	for(let entry of entries) { // each 'entry' is a [key, value] tupple
@@ -419,6 +423,7 @@ function URL_upd()
  url_str=url_str.replace('\&fill_mode=fill_0','');
  url_str=url_str.replace('\&bfill_clamp_to_max_colors=false','');
  url_str=url_str.replace('\&color_max=255','');
+ //TODO newly added param default
  
  
  let ar=window.location.pathname.split('/');
@@ -426,71 +431,68 @@ function URL_upd()
  //history.replaceState({}, null, 'webGL.htm?'+url_str);//TODO  move zoom do not upd pushState() immediately but after some timer to prevent flood of history  OR replace history replaceState()
 } //https://stackoverflow.com/questions/824349/how-do-i-modify-the-url-without-reloading-the-page
 
-var wh;
-var xc=-1,yc=-1;
+var tt={}
+
 var bStop=true;
 var fieldAdd=0;
 var bAudioGen=false;
 
-function resetwh()
+function load_settings() //not load presets. Presets that affect many parameters load only manually
 {
+	ssC_default_set();
 	stt_default();	//restore default first
-	ssC_default()
-	paramsTo_stt();
+	URL_to_stt();
 	
-	//	//if(window.innerHeigh!==undefined)
+	////if(window.innerHeigh!==undefined)
 	//{
 	//h=window.innerHeigh>1200 ?1024:512; //console.log(window.innerHeigh, 'set stt.h:', ss.h);
 	//w=window.innerWidth>1100 ?1024:512; //!TODO. this can be done after page load
 	//}
 
-	//console.log('set w,h, arrays and canvas to: ', ss.w,ss.h);
+	tt.wh=ss.w*ss.h;
+	tt.xc=ss.w/2;
+	tt.yc=ss.h/2;
+	tt.xM=ss.w-1;
+	tt.yM=ss.h-1;
 
- wh=ss.w*ss.h;
- xc=ss.w/2;
- yc=ss.h/2;
- xM=ss.w-1;
- yM=ss.h-1;
- 
- canvas.width=ss.w;
- canvas.height=ss.h;
+	canvas.width=ss.w;
+	canvas.height=ss.h;
 
- field = new Uint8Array(wh); //2D array [x][y] tested as slower https://stackoverflow.com/questions/1242705/performance-of-2-dimensional-array-vs-1-dimensional-array
- field_f= new Float32Array(wh); //for ant_f
+	field = new Uint8Array(tt.wh); //2D array [x][y] tested as slower https://stackoverflow.com/questions/1242705/performance-of-2-dimensional-array-vs-1-dimensional-array
+	field_f= new Float32Array(tt.wh); //for ant_f
 
- arrHist = new Uint32Array(wh); //step number
- arrVisits = new Uint32Array(wh); //count
+	arrHist = new Uint32Array(tt.wh); //step number
+	arrVisits = new Uint32Array(tt.wh); //count
 
- arrHistDir_E = new Uint32Array(wh); // +=this.dir;
- arrDir_last = new Uint8Array(wh);  // =this.dir;
- arrHistDirAbs = new Uint8Array(wh); // not overflowed by %4 (or %8)
+	arrHistDir_E = new Uint32Array(tt.wh); // +=this.dir;
+	arrDir_last = new Uint8Array(tt.wh);  // =this.dir;
+	arrHistDirAbs = new Uint8Array(tt.wh); // not overflowed by %4 (or %8)
+	arrHist_rotSpeed = new Uint32Array(tt.wh);
+	
+	arrAntLastStepC = new Uint32Array(4096);
+	arrSeq = new Uint8Array(tt.wh);
+	
+	texArr=new Float32Array(tt.wh); //Uint8Array
 
- arrHist_rotSpeed = new Uint32Array(wh);
- 
- texArr=new Float32Array(wh); //Uint8Array
+	//field.fill(4, 1, 3); //val, start, end
 
-
-//field.fill(4, 1, 3); //val, start, end
-
-// field =Array(ss.w).fill(Array(stt.h)); //Rows are copied by reference
-//https://stackoverflow.com/questions/1295584/most-efficient-way-to-create-a-zero-filled-javascript-array
-
-//TODO filled area per t, 	end point distance per t
+	// field =Array(ss.w).fill(Array(stt.h)); //Rows are copied by reference
+	//https://stackoverflow.com/questions/1295584/most-efficient-way-to-create-a-zero-filled-javascript-array
 }
 </script>
 <script src="ant.js"></script>
 <style>
 .pa {color: red;}
-/*.viewport {position: absolute;}*/
+
+body{
+ background-color: #fbefff;
+}
+
 .dropmenu {position: fixed; }
 .shortcut{
 	text-decoration: underline; 
 	background-color: #ffeecc;
 	text-transform: capitalize;/* affect innerText, but not .textContent */
-}
-
-body{
- background-color: #fbefff;
 }
 
 /*#inf{width: 280px;}*/
@@ -560,56 +562,6 @@ top: 2px;
 	outline: solid 1px black;
 	background-color:#aaa!important;
 }
-</style>
-<style>
-.w3-black, .w3-hover-black:hover {
-	color: #fff!important;
-	background-color: #515151/*#7b6d6d!important;*/
-}
-.w3-bar {
-	width: 100%;
-	overflow: hidden;
-}
-.w3-bar .w3-button {
-	white-space: normal;
-}
-
-.w3-bar .w3-bar-item {
-	padding: 3px 14px;
-	float: left;
-	width: auto;
-	border: none;
-	display: block;
-	outline: 0;
-}
-
-.w3-btn {
-	border: none;
-	display: inline-block;
-	padding: 6px 14px;
-	vertical-align: middle;
-	overflow: hidden;
-	text-decoration: none;
-	color: inherit;
-	background-color: inherit;
-	text-align: center;
-	cursor: pointer;
-	white-space: nowrap;
-	box-shadow:0 5px 10px 0 rgba(0,0,0,0.2),0 4px 12px 0 rgba(0,0,0,0.19);
-}
-
-.w3-btn:hover {
-  background-color: #cccccc!important;
-  color: #333!important;
-  border: none;
-}
-
-.w3-btn:active {
-  background-color: #aaaaaa!important;
-  color: #050!important;
-  box-shadow: none;
-  border: none;
-}
 
 
 .pan {
@@ -663,6 +615,56 @@ input[type=range]{
 background-color:#d4d4d4;
 }
 </style>
+<style>
+.w3-black, .w3-hover-black:hover {
+	color: #fff!important;
+	background-color: #515151/*#7b6d6d!important;*/
+}
+.w3-bar {
+	width: 100%;
+	overflow: hidden;
+}
+.w3-bar .w3-button {
+	white-space: normal;
+}
+
+.w3-bar .w3-bar-item {
+	padding: 3px 14px;
+	float: left;
+	width: auto;
+	border: none;
+	display: block;
+	outline: 0;
+}
+
+.w3-btn {
+	border: none;
+	display: inline-block;
+	padding: 6px 14px;
+	vertical-align: middle;
+	overflow: hidden;
+	text-decoration: none;
+	color: inherit;
+	background-color: inherit;
+	text-align: center;
+	cursor: pointer;
+	white-space: nowrap;
+	box-shadow:0 5px 10px 0 rgba(0,0,0,0.2),0 4px 12px 0 rgba(0,0,0,0.19);
+}
+
+.w3-btn:hover {
+  background-color: #cccccc!important;
+  color: #333!important;
+  border: none;
+}
+
+.w3-btn:active {
+  background-color: #aaaaaa!important;
+  color: #050!important;
+  box-shadow: none;
+  border: none;
+}
+</style>
 
 </head>
 <body>
@@ -672,7 +674,7 @@ background-color:#d4d4d4;
 <div class="pan" style="padding: 20px;border: red;border-style: solid;">
 <!-- <h1 style="position: absolute; left: 4px;">!</h1> -->
 <li>hold Ctrl to move panels or check to drag: <input type='checkbox' oninput='bpanDragWOCtrl=checked'></li>
-<button onclick='posReset()'>reset panels pos</button><br>
+<button onclick='elementPos_reset()'>reset panels pos</button><br>
 <li>если после старта ничего не видно и screen became black:<br> try to adjust h_mul or zoom or select colorization preset, <button onclick='reset_xyz()'>reset view xyz</button> or <button onclick="window.location.replace(window.location.pathname)">reload empty settings</button> </li>
 <!-- <li>🔗 get link</li> -->
 TODO:
@@ -756,6 +758,7 @@ To view arrays of fieds press keyboard to データを選択:<br>
 <button name='showArr' class='shrtcutBtn' tag='e' title='=this.dir'>arrHistDir_E</button>
 <button name='showArr' class='shrtcutBtn' tag='r' title='not overflowed by %4 (or %8)'>arrHistDirAbs</button>
 <button name='showArr' class='shrtcutBtn' tag='s' title='s'>arrHist_rotSpeed</button>
+<button name='showArr' class='shrtcutBtn' tag='j' title='detect same by last colors'>arrSeq</button>
 <br>
 <input id='slider_del_field_if_step_i' type="range" min="0" max="1000000" value="0" step='16' oninput='stt.del_field_if_step_i=value'> <i id='del_field_if_step_i_slider_txt'></i>k, delete field if step is older
 <br>
@@ -764,133 +767,47 @@ To view arrays of fieds press keyboard to データを選択:<br>
 <br><hr>
 Colorization データの色化<br>
 <script>
-//https://learn.javascript.ru/indexeddb
-//https://gist.github.com/JamesMessinger/a0d6389a5d0e3a24814b
-var indexedDB = window.indexedDB;
-// Open (or create) the database
-var open = indexedDB.open("presets", 1);
-
-// Create the schema
-open.onupgradeneeded = function() {
-    var db = open.result;
-	if (!db.objectStoreNames.contains('colorize')) {
-    var store = db.createObjectStore("colorize", {keyPath: "nm"});
-	}
-    //var index = store.createIndex("NameIndex", ["name.last", "name.first"]);
-};
-
-open.onsuccess = function() {
-    // Start a new transaction
-    var db = open.result;
-    var tx = db.transaction("colorize", "readwrite");
-	
-    var store = tx.objectStore("colorize");
-	
-    //var index = store.index("NameIndex");
-
-    // Add some data
-    //store.put({id: 12345, name: {first: "John", last: "Doe"}, age: 42});
-    //store.put({id: 67890, name: {first: "Bob", last: "Smith"}, age: 35});
-    
-    // Query the data
-    //var getJohn = store.get(12345);
-    //var getBob = index.get(["Smith", "Bob"]);
-
-    //getJohn.onsuccess = function() {
-    //    console.log(getJohn.result.name.first);  // => "John"
-   // };
-
-/*
-    getBob.onsuccess = function() {
-        console.log(getBob.result.name.first);   // => "Bob"
-    };*/
-
-    // Close the db when the transaction is done
-    tx.oncomplete = function() {
-        db.close();
-    };
-}
-
-
 function colorizeSave(){
-	var open_colorizeSave = indexedDB.open("presets", 1);
-	
-	let nm = prompt("preset unique name", rand());
-	cccont.nm=nm;
-	
-	open_colorizeSave.onsuccess = function() {
-		var db = open_colorizeSave.result;
-		var tx = db.transaction("colorize", "readwrite");
-		var store = tx.objectStore("colorize");
-		store.put(cccont);
-	}
+ let nm = prompt("preset unique name", rand());
+ ssCs.push(
+ {
+	nm:nm,
+	ssC:Object.assign({}, ssC)
+ });
+ localStorage.setItem('ssCs', JSON.stringify(ssCs));
 }
-
-var ccconts=[];
-function DB_listAll(){
-	var open_colorizeLoad = indexedDB.open("presets", 1);
-	
-	open_colorizeLoad.onsuccess = function() {
-	var db = open_colorizeLoad.result;
-	var tx = db.transaction("colorize", "readwrite");
-	var store = tx.objectStore("colorize");
-	
-	var getall = store.getAll();
-    getall.onsuccess = function() {
-		ccconts=getall.result;							//console.log(ccconts,JSON.stringify(ccconts)); //TODO export import
-
-		let str='';
-		for(let i=0;i<ccconts.length;i++){
-			str+="<option value='"+ccconts[i].nm+"'>"+ccconts[i].nm+"</option>";
-		}
-		$('sel_colorizeLoad').innerHTML+=str;
-    };
-	/*
-	var getNm = store.getAll(nm);
-    getNm.onsuccess = function() {
-		cccont=getNm.result;				console.log(cccont);
-		URL_upd();
-    };
-	*/
+function colorize_listAll(){
+	let s=localStorage.getItem('ssCs');
+	ssCs=s?JSON.parse(s):[{nm:'0',ssC:ssC_defaultCopy()}];
+	let str='';
+	for(let i=0;i<ssCs.length;i++){
+		str+="<option value='"+ssCs[i].nm+"'>"+ssCs[i].nm+"</option>";
 	}
-}
-
-function colorizeLoad(nm){
-	if(nm=='0') {
-	 ssC_default();
-	 return;
+	$('sel_colorize_set').innerHTML+=str;
+}	
+function colorize_set(nm){
+	if(nm=='0'){
+		ssC_default_set(); return;
 	}
 	
-	for(let i=0;i<ccconts.length;i++){
-	//console.log(ccconts)
-		if(ccconts[i].nm===nm) 
-		{
-			if(ccconts[i].hasOwnProperty('ccc'))
-			{
-			Object.keys(ccconts[i].ccc).forEach(function(key,index) {
-				//console.log(key,index)
-				stt[key]=ccconts[i].ccc[key]; 				//console.log(key,index,ccconts[i].ssC[key]);
-				// key: the name of the object key
-				// index: the ordinal position of the key within the object 
-			});
-			}
-			if(ccconts[i].hasOwnProperty('ssC')) //TODO rename, del
-			{
-				Object.keys(ccconts[i].ssC).forEach(function(key,index) {
-					//console.log(key,index)
-					stt[key]=ccconts[i].ssC[key]; 				//console.log(key,index,ccconts[i].ssC[key]);
-					// key: the name of the object key
-					// index: the ordinal position of the key within the object 
-				});
-			}
+	for(let i=0;i<ssCs.length;i++){
+		if(ssCs[i].nm===nm){
+			setSettings_GUIupd(ssCs[i].ssC);
 		}
 	}
 }
-
-
+function setSettings_GUIupd(o){
+ bGUIupd=true;
+	Object.keys(o).forEach(function(key,index) {			
+		stt[key]=o[key];
+		// key: the name of the object key
+		// index: the ordinal position of the key within the object 
+	});
+ bGUIupd=false;
+}
 </script>
 presets (or bookmark this page):
-<select id='sel_colorizeLoad' onchange="colorizeLoad(value);">
+<select id='sel_colorize_set' onchange="colorize_set(value);">
  <option value="0">default</option>
 </select>
 <button onclick='colorizeSave()'>save to browser DB</button>
@@ -1063,70 +980,6 @@ TODO color to be same as in shader, same as in ant function<br>
 
 
 <script> //init
-var panZindex_last=0;
-var pan_sel_last=null;
-var bpanDragWOCtrl=false;
-function draggable(el, allowedChild) {
-  el.addEventListener('mousedown', function(e) {
-    var offsetX = e.clientX - parseInt(window.getComputedStyle(this).left);
-    var offsetY = e.clientY - parseInt(window.getComputedStyle(this).top);
-    
-    function mouseMoveHandler(e) {//console.log(e.target, this)
-		//&&(this === e.target ||e.target.tagName==allowedChild)) //prevent event bubbling from child unless hold CTRL 
-		if(bpanDragWOCtrl || e.ctrlKey) { 
-		  el.style.top = (e.clientY - offsetY) + 'px';
-		  el.style.left = (e.clientX - offsetX) + 'px';
-		  if(pan_sel_last!=el)
-		  {
-			pan_sel_last=el;
-			panZindex_last++;
-			el.style.zIndex=panZindex_last;
-		  }
-	  }
-    }
-
-    function reset() {
-      el.removeEventListener('mousemove', mouseMoveHandler);
-      el.removeEventListener('mouseup', reset);
-	  posSave(el.id, el.style.left, el.style.top, el.style.zIndex);
-    }
-
-    el.addEventListener('mousemove', mouseMoveHandler);
-    el.addEventListener('mouseup', reset);
-	
-
-  });
-}
-
-
-var panel_load_i=0;
-function posSave(id,x,y,z){
-	localStorage.setItem(id+'x', x);
-	localStorage.setItem(id+'y', y);
-	localStorage.setItem(id+'z', z);
-}
-function posLoad(el){
-	let x=localStorage.getItem(el.id+'x');
-	let y=localStorage.getItem(el.id+'y');
-	let z=localStorage.getItem(el.id+'z');
-
-	if(x==null) {
-		x=10+panel_load_i*80+'px';
-		y=20+panel_load_i*50+'px';
-		z=panel_load_i;
-	}
-
-	el.style.left=x;
-	el.style.top=y;
-	el.style.zIndex=z;						//console.log(panel_load_i,x,y,z);
-	panel_load_i++;
-}
-function posReset(){
-	localStorage.clear(); 
-	window.location.reload();
-}
-
-
 window.onload=setup;
 function setup(){
 //-------- shrtcutBtn events
@@ -1145,11 +998,11 @@ function setup(){
 		ar[i].innerHTML=str;
 	}
 	//---- 
-	resetwh();
+	load_settings();
 	setupWebGL();
 	addEvents_panZoom_ToCanvasView(canvas);
 	createGUI();
-	DB_listAll();
+	colorize_listAll();
 	patternBox_draw();
 	
 		
@@ -1180,14 +1033,8 @@ function setup(){
 	
 
 	
-	let es=document.getElementsByClassName('pan');
-	for(let i=0;i<es.length;i++)
-	{
-		let e=es[i];
-		e.id='p'+i;
-		posLoad(e);
-		draggable(es[i],'FIELDSET');
-	}
+	elementPos_load('pan','FIELDSET');
+
 //-------- ant
 
 	ant.antFunc=(typeof ss.a0!='undefined')?antFF[ss.a0]:antFF.RL;// TODO need to create all saved ants, not only set default 1
@@ -1224,8 +1071,8 @@ new_sel.addEventListener('mouseleave', antFunc_sel_off);
 function new_ant(o)
 {
  let a=Object.create(o);
- a.x = xc; 
- a.y = yc; 
+ a.x = tt.xc; 
+ a.y = tt.yc; 
  ants.push(a);
  ant_selected_set(a)
  if(ant_selected.bFloatDir) dirM=4;
@@ -1612,21 +1459,80 @@ var frameNID=-1;// №
 let ant_dirAbs_last=0;
 let ant_step_i_last=0;
 let bPrint_k=0;
+
+AntLastStep=0;
+seq_detect_m=30;
+seq_detected_shift=0;
+seq_N=0;
+function arrAntLastStepC_get_index(ih,AntLastStep)
+{
+	return (ih+AntLastStep)%arrAntLastStepC.length;
+}
+
 function loop(timestamp) {
 timestamp=timestamp_t //!fix something increment this if delete this it will still increasing %\
 timestamp_t+=ss.h_incr*h_incr_mul;
 	var t0=window.performance.now();
 	
-	for (let i = 0; i < ss.speed; i++) { //100000000 =10M=1s on opera2020  //310+35ms separate field arr
+	for (let i = 0; i < ss.speed; i++)
+	{ //100000000 =10M=1s on opera2020  //310+35ms separate field arr
+	/*
 		for(let i=0;i<ants.length;i++)
 		{
 		 ants[i].run();
 		 //bStop=true; //TODO single step mode press btn //sleep(500)
 		}
+		*/
+		ants[0].run();		//console.log(ants[0].pos);
+		
+		//detect seq TODO settings skip if not need,  not every step 
+		arrAntLastStepC[AntLastStep]=field[ants[0].pos];
+		AntLastStep++;if(AntLastStep>=arrAntLastStepC.length) AntLastStep=0;
+		if(ss.showArr=='arrSeq') //as this is very slow
+		{
+			if(ss.speed>8000)ss.speed=8000;
+			if(ants[0].step_i_real>arrAntLastStepC.length)
+			{
+				if(seq_detected_shift!=0){
+					if(arrAntLastStepC[arrAntLastStepC_get_index(0,AntLastStep)]==arrAntLastStepC[arrAntLastStepC_get_index(0+seq_detected_shift,AntLastStep)])
+					{
+						arrSeq[ants[0].pos]=ants[0].step_i_real%seq_detected_shift;//TODO colorize start w same color, single color negative each seq_N;
+						//arrVisits[ants[0].pos]=122;
+					}
+					else
+					{
+						seq_detected_shift=0;
+						//arrVisits[ants[0].pos]=0;
+					}
+				}
+				else
+				{
+					arrVisits[ants[0].pos]=0;
+					for(ih=0,shift=seq_detect_m;;)
+					{
+						if(arrAntLastStepC[arrAntLastStepC_get_index(ih,AntLastStep)]!=arrAntLastStepC[arrAntLastStepC_get_index(ih+shift,AntLastStep)]){
+							
+							ih=0;shift++;
+							if(shift>arrAntLastStepC.length/2) break;
+						}
+						else{
+							if(ih==shift) {
+								seq_detected_shift=shift;
+								seq_N++;					console.log(seq_N, seq_detected_shift);
+								break;
+							}
+							else
+							ih++;
+						}
+					}
+				}
+			}
+		}
+		
 	}
 	if(fieldAdd>0)
 	{
-		for(let i=0;i<wh;i++)
+		for(let i=0;i<tt.wh;i++)
 		{
 			if( !ss.bfieldAdd_lim || (field[i]>0 || field[i]<=255) )
 			{
@@ -1643,7 +1549,7 @@ texArr[(y*ss.w+x)*4+1] = 111; // Green component
 texArr[(y*ss.w+x)*4+2] = c; // Blue component
 texArr[(y*ss.w+x)*4+3] = 0xff; // Alpha component
 */
-for(let i=0;i<wh;i++){
+for(let i=0;i<tt.wh;i++){
 	if(ss.del_field_if_step_i>0 && arrHist[i]<ants[0].step_i_real-ss.del_field_if_step_i)
 	{
 		field[i]=0;
@@ -1672,7 +1578,7 @@ for(let i=0;i<wh;i++){
 		//}
 		//}
 
-		for(let i=0;i<wh;i++){
+		for(let i=0;i<tt.wh;i++){
 			texArr[i] = field[i];
 			//if(arrVisits[i]<3){texArr[i] = field[i];} //only first
 			//else {texArr[i]++}
@@ -1682,42 +1588,49 @@ for(let i=0;i<wh;i++){
 		case 'arrHist':
 		h_mul_mul=0.001;
 		h_incr_mul=10;
-		for(let i=0;i<wh;i++)
+		for(let i=0;i<tt.wh;i++)
 			texArr[i] = arrHist[i];
 		break;
 		case 'arrVisits':
 		h_mul_mul=0.03;
 		h_incr_mul=1;
-		for(let i=0;i<wh;i++)
+		for(let i=0;i<tt.wh;i++)
 			texArr[i] = arrVisits[i];
 		break;
 
 		case 'arrDir_last':
 		h_mul_mul=0.01; //!!
 		h_incr_mul=1;
-		for(let i=0;i<wh;i++)
+		for(let i=0;i<tt.wh;i++)
 			texArr[i] = arrDir_last[i];
 		break;
 		
 		case 'arrHistDir_E':
 		h_mul_mul=0.5;
 		h_incr_mul=1;
-		for(let i=0;i<wh;i++)
+		for(let i=0;i<tt.wh;i++)
 			texArr[i] = arrHistDir_E[i];
 		break;
 		
 		case 'arrHistDirAbs':
 		h_mul_mul=0.1;
 		h_incr_mul=1;
-		for(let i=0;i<wh;i++)
+		for(let i=0;i<tt.wh;i++)
 			texArr[i] = arrHistDirAbs[i];		
-		break;
-		
+		break;	
+
 		case 'arrHist_rotSpeed':
 		h_mul_mul=0.1;
 		h_incr_mul=0; //TODO but change with slider
-		for(let i=0;i<wh;i++)
+		for(let i=0;i<tt.wh;i++)
 			texArr[i] = arrHist_rotSpeed[i];
+		break;
+		
+		case 'arrSeq':
+		h_mul_mul=0.001;
+		h_incr_mul=1;
+		for(let i=0;i<tt.wh;i++)
+			texArr[i] = arrSeq[i];		
 		break;
 	}
 
@@ -2008,7 +1921,7 @@ function setFrequency()
 		case 'dist_x': freq=ant_selected.x; break; //|  +ant_selected.y
 		case 'dist_center': //distance from center
 		{
-			freq =Math.hypot(ant_selected.x-xc, ant_selected.y-yc);//static cursor has no sense
+			freq =Math.hypot(ant_selected.x-tt.xc, ant_selected.y-tt.yc);//static cursor has no sense
 		}
 		break;
 		/*
@@ -2023,7 +1936,7 @@ function setFrequency()
 			ant_selected.xt=ant_selected.x;//TODO dt dstep
 			ant_selected.yt=ant_selected.y;
 			freq =ant_selected.speed_measured;
-			//freq =Math.hypot(ant_selected.speed_measured-xc, ant_selected.y-yx); //test this artef
+			//freq =Math.hypot(ant_selected.speed_measured-tt.xc, ant_selected.y-yx); //test this artef
 		}
 		break;
 		case 'visit': //!! from datasetColor have to be set to visit

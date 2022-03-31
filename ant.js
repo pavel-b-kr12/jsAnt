@@ -312,18 +312,19 @@ function l(o)
 
 var ant = {
 			dir : 0,
-			x : xc, 
-			y: yc,
+			x : tt.xc, 
+			y: tt.yc,
 //-- temp for audio
 	visit_last:0,
 	xt:0,
 	yt:0,
 	speed_measured:0,
-//--
+//--temp
+	pos:0,
 			centerXY: function ()
 			{
-			 this.x=~~xc;
-			 this.y=~~yc;
+			 this.x=~~tt.xc;
+			 this.y=~~tt.yc;
 			},
 				
 			xt:0,	//prev pos
@@ -339,14 +340,15 @@ var ant = {
 			{
 			  	switch (this.dir) //step
 				{
-					case 0: if (this.y == yM) this.y = 0; else this.y++; break;
-					case 1: if (this.x == xM) this.x = 0; else this.x++; break;
-					case 2: if (this.y == 0) this.y = yM; else this.y--;  break;
-					case 3: if (this.x == 0) this.x = xM; else this.x--;  break;
+					case 0: if (this.y == tt.yM) this.y = 0; else this.y++; break;
+					case 1: if (this.x == tt.xM) this.x = 0; else this.x++; break;
+					case 2: if (this.y == 0) this.y = tt.yM; else this.y--;  break;
+					case 3: if (this.x == 0) this.x = tt.xM; else this.x--;  break;
 				}
 
 				//var c=buffer32[this.y*dataSize+this.x] >> 16&255; //R
-				let pos=this.y*ss.w+this.x;
+				pos=this.y*ss.w+this.x;
+				this.pos=pos;
 				
 				//this.antFunc(this, pos);
 				this.antFunc(this, pos);//#opt
@@ -468,13 +470,13 @@ function dir8()
 var ant_fdir = {
 			bFloatDir:true,
 			dir : 0,
-			x : xc, 
-			y: yc,
+			x : tt.xc, 
+			y: tt.yc,
 			
 			centerXY: function ()
 			{
-			 this.x=~~xc;
-			 this.y=~~yc;
+			 this.x=~~tt.xc;
+			 this.y=~~tt.yc;
 			},
 				
 			//dxy:0 //speed on this segment
@@ -487,10 +489,10 @@ var ant_fdir = {
 			{
 			  	switch (~~this.dir) //step
 				{
-					case 0: if (this.y >= yM) this.y = 0; else this.y++; break;
-					case 1: if (this.x >= xM) this.x = 0; else this.x++; break;
-					case 2: if (this.y <= 0) this.y = yM; else this.y--;  break;
-					case 3: if (this.x <= 0) this.x = xM; else this.x--;  break;
+					case 0: if (this.y >= tt.yM) this.y = 0; else this.y++; break;
+					case 1: if (this.x >= tt.xM) this.x = 0; else this.x++; break;
+					case 2: if (this.y <= 0) this.y = tt.yM; else this.y--;  break;
+					case 3: if (this.x <= 0) this.x = tt.xM; else this.x--;  break;
 				}
 				
 
@@ -530,8 +532,8 @@ var ant_f = {
 			bFloatPos:true,
 			bFloatDir:true,
 			dir : 0,
-			x : xc, 
-			y: yc,
+			x : tt.xc, 
+			y: tt.yc,
 			
 			xAdd:0.2,
 			yAdd:0.2,
@@ -541,8 +543,8 @@ var ant_f = {
 
 			centerXY: function ()
 			{
-			 this.x=~~xc;
-			 this.y=~~yc;
+			 this.x=~~tt.xc;
+			 this.y=~~tt.yc;
 			},
 				
 			//dxy:0 //speed on this segment
@@ -559,10 +561,10 @@ var ant_f = {
 				/* //for positive xAdd xSub
 			  	switch (~~this.dir) //step
 				{
-					case 0: this.x+=this.xAdd; this.x%=xM; break;
-					case 1: this.y+=this.yAdd; this.y%=yM; break;
-					case 2: this.x-=this.xSub; if(this.x<0)this.x+=xM;  break;
-					case 3: this.y-=this.ySub; if(this.y<0)this.y+=yM; break;
+					case 0: this.x+=this.xAdd; this.x%=tt.xM; break;
+					case 1: this.y+=this.yAdd; this.y%=tt.yM; break;
+					case 2: this.x-=this.xSub; if(this.x<0)this.x+=tt.xM;  break;
+					case 3: this.y-=this.ySub; if(this.y<0)this.y+=tt.yM; break;
 				}
 				*/
 				switch (~~this.dir) //step
@@ -573,8 +575,8 @@ var ant_f = {
 					case 3: this.y-=this.ySub; break;
 				}
 
-				 let x=Math.abs(~~this.x%xM);
-				 let y=Math.abs(~~this.y%yM);
+				 let x=Math.abs(~~this.x%tt.xM);
+				 let y=Math.abs(~~this.y%tt.yM);
 				let pos=x*ss.h+y;
 				//let pos=~~((this.x)*ss.h+(this.y)); //this make 4x trails
 

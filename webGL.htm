@@ -11,6 +11,7 @@
 <script src="fill.js" defer></script> 
 <script src="lib/recorder.js" defer></script> 
 <script src="lib/elementPos.js" defer></script> 
+<script src="notes.js" defer></script> 
 <script> //settings
 var ant_selected=null;
 
@@ -248,7 +249,7 @@ var stt={ //object to SET settings and upd GUI
 	set bfreq_cursor_toAnt(v){//TODO to ant id
 		v=JSON.parse(v);
 		ss.bfreq_cursor_toAnt=v;
-		freq_cursor.o=v?ants[0]:freq_cursor_o_static;
+		freq_cursor.o=v?ants[0]:freq_cursor_o_static;		console.log(freq_cursor.o)
 	},
 //----------------------------
 	set x_anim(v){
@@ -375,11 +376,13 @@ stt.yy=0;
 stt.hist_mode='';
 stt.hist_incr_mode='';
 stt.del_field_if_step_i=0;
+stt.bfreq_cursor_toAnt=true;
 
 //------ fill
 stt.fill_mode='fill_0';
 stt.bfill_clamp_to_max_colors=false;
 stt.color_max=255;
+
 bGUIupd=false;
 }
 
@@ -457,6 +460,13 @@ function load_settings() //not load presets. Presets that affect many parameters
 
 	canvas.width=ss.w;
 	canvas.height=ss.h;
+	
+	canvasPlot.width=512;
+	canvasPlot.height=256;
+	canvasPlotc = canvasPlot.getContext("2d");
+	canvasPlotc.fillStyle = "#FF0000";
+
+
 
 	field = new Uint8Array(tt.wh); //2D array [x][y] tested as slower https://stackoverflow.com/questions/1242705/performance-of-2-dimensional-array-vs-1-dimensional-array
 	field_f= new Float32Array(tt.wh); //for ant_f
@@ -938,12 +948,13 @@ function ySub_set(v, bSetRangeValue){
 </legend>
 
 <input id='slider_AudioFreqMul' type="range" min="1" max="100" value="1" oninput="stt.AudioFreqMul=this.value"> <i id='AudioFreqMul_slider_txt'></i> AudioFreq Multiplyer<br>
-<input  type="range" min="0.01" max="0.8" value="0.2" step='.01' oninput="console.log(value)"> 
 
-<input id='bfreq_cursor_toAnt_sw' type="checkbox" oninput="stt.bfreq_cursor_toAnt=checked">attach freq_cursor to ant<br>
+<input id='bfreq_cursor_toAnt_sw' type="checkbox" oninput="stt.bfreq_cursor_toAnt=checked" checked>attach freq_cursor to ant<br>
 Static freq_cursor pos:<p id='freq_cursor_xy_view'></p>
 AudioFunc:<select id='getFreq_mode_sel' onChange='stt.getFreq_mode=value;'></select><br>
+<button onclick='canvasPlotc.clearRect(0, 0, canvasPlot.width, canvasPlot.height);fxxs=new Float32Array(4096);'>clean spectre</button>
 </fieldset>
+<canvas id="canvasPlot" width="512" height="256" style="border:1px solid #000000;"></canvas>
 </div>
 
 
@@ -973,7 +984,7 @@ TODO color to be same as in shader, same as in ant function<br>
 
 
 <div class="pan">
-<canvas id='canvas' class='viewport'></canvas>
+<canvas id='canvas'></canvas>
 </div>
 
 </div>
@@ -1040,6 +1051,7 @@ function setup(){
 	ant.antFunc=(typeof ss.a0!='undefined')?antFF[ss.a0]:antFF.RL;// TODO need to create all saved ants, not only set default 1
 	ant_f.antFunc=(typeof ss.a0!='undefined')?antFF_f[ss.af0]:antFF_f.RL;
 	new_ant(ant) //start with integer ant as it simpler and easy to make good audio
+	freq_cursor.o=ants[0];
 	//new_ant(ant_f)
 }
 
@@ -1164,6 +1176,7 @@ function del_selected_ant(){
 
 <script> //loop
 var canvas = $('canvas');
+var canvasPlot = $('canvasPlot');
 
 var lastX,lastY;
 var dragEnd_dX=0;
@@ -1693,13 +1706,11 @@ if(il==0){
 	ss.y_anim+=ss.y_anim_incr;
 	if(ss.z_anim_incr!=0){
 		ss.z_anim+=ss.z_anim_incr;
-		
 		//zoom from cursor, but not from 0,0
 		let dz=ss.z_anim_incr;
 		ss.xx+=lastX/ss.w*dz;
 		ss.yy+=lastY/ss.h*dz;
 	}
-	
 	ss[ss.any_anim_nm]+=ss.any_anim_incr; //TODO any but not x,y,z
   }
 
@@ -1960,7 +1971,10 @@ function setFrequency()
 		freq_avg=freq_avg*0.95+freq*0.05;
 		}
 		ffx=freq-freq_avg
-	osc.frequency.value=(440*2+((freq-freq_avg)%4096)*ss.AudioFreqMul)%16384;
+	osc.frequency.value=(440*2+((freq-freq_avg)%4096)*ss.AudioFreqMul)%4096;//16384;
+
+	//TODO settings quantize to notes, draw fxxs
+	//osc.frequency.value=notes5[Math.round((440*2+((freq-freq_avg)%4096)*ss.AudioFreqMul*0.01))%16];
 	
 	
 	$('freq_').innerText=freq;
@@ -1968,8 +1982,15 @@ function setFrequency()
 	$('ffx_').innerText=ffx;
 	$('frequency_').innerText=osc.frequency.value;
 	
+	
+	let ft=Math.round(osc.frequency.value/8); //console.log(ft, fxxs[ft])
+	canvasPlotc.fillRect(ft, fxxs[ft]*2, 1, 2);
+	fxxs[ft]++;
+	
 	//osc.frequency.value=60+(freq%ss.freq_dirModule)*ss.freq_rangeMult; //%4   Math.sin(ant.dir)*256;   //by dir
 }
+fxxs=new Float32Array(4096);//how often fx is used
+
 freq_avg=0; //TODO settings, map to notes, midi
 ffx=0;
 //##const osc = new Tone.Oscillator(440, "sine").toDestination()

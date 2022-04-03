@@ -386,7 +386,7 @@ stt.color_max=255;
 bGUIupd=false;
 }
 
-
+//======================= URL
 function URL_to_stt() {//https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
 	bGUIupd=true;
 	let entries=new URLSearchParams(window.location.search);
@@ -433,8 +433,8 @@ function URL_upd()
  history.replaceState(null, null, ar[ar.length-1]+'?'+url_str); 
  //history.replaceState({}, null, 'webGL.htm?'+url_str);//TODO  move zoom do not upd pushState() immediately but after some timer to prevent flood of history  OR replace history replaceState()
 } //https://stackoverflow.com/questions/824349/how-do-i-modify-the-url-without-reloading-the-page
-
-var tt={}
+//=======================
+var tt={} //settings that no need to save
 
 var bStop=true;
 var fieldAdd=0;
@@ -681,26 +681,6 @@ background-color:#d4d4d4;
 
 <div class="panContainer">
 
-<div class="pan" style="padding: 20px;border: red;border-style: solid;">
-<!-- <h1 style="position: absolute; left: 4px;">!</h1> -->
-<li>hold Ctrl to move panels or check to drag: <input type='checkbox' oninput='bpanDragWOCtrl=checked'></li>
-<button onclick='elementPos_reset()'>reset panels pos</button><br>
-<li>если после старта ничего не видно и screen became black:<br> try to adjust h_mul or zoom or select colorization preset, <button onclick='reset_xyz()'>reset view xyz</button> or <button onclick="window.location.replace(window.location.pathname)">reload empty settings</button> </li>
-<!-- <li>🔗 get link</li> -->
-TODO:
-<li>del indexedDB, use local storage JSON</li>
-<li>[ ] investigate why pattern do not shown</li>
-<li>[ ] load field</li>
-<li>[ ] save localStorage to file</li>
-<li>[ ] save img nm, load</li>
-<li>[ ] save settings to img QR-code</li>
-<li>[ ] negative speed</li>
-<li>[ ] upd pattern from f, or list of pictures in select</li>
-<li>[ ] dont flood URL untill ask of link</li>
-
-</div>
-
-
 <div class="pan">
 ms walk+draw<br><i id="dtAnt"></i> + <i id="dtDraw"></i> <br>
 dirAbs <i id='dirAbs'></i><br>
@@ -873,7 +853,6 @@ z+=<input id='slider_z_anim_incr' type="range" min="-0.01" max="0.01" value="0" 
 <input type="text" id='any_anim_nm_input' oninput="stt.any_anim_nm=value">+=<input id='slider_any_anim_incr' type="range" min="-100" max="100" value="0" oninput="let v=(value>-5&&value<5)?0:value;stt.any_anim_incr=v;this.style.backgroundColor=v==0?'#bbb':'#d4d4d4';"> <br>
 
 <br>
-<!-- TODO make same with all settings -->
 <!-- TODO better make sel list of any_anim_nm -->
 <br>
 </fieldset>
@@ -987,11 +966,30 @@ TODO color to be same as in shader, same as in ant function<br>
 <canvas id='canvas'></canvas>
 </div>
 
+<div class="pan" style="padding: 20px;border: red;border-style: solid;">
+<!-- <h1 style="position: absolute; left: 4px;">!</h1> -->
+<li>hold Ctrl to move panels or check to drag: <input type='checkbox' oninput='bpanDragWOCtrl=checked'></li>
+<button onclick='elementPos_reset()'>reset panels pos</button><br>
+<li>если после старта ничего не видно и screen became black:<br> try to adjust h_mul or zoom or select colorization preset, <button onclick='reset_xyz()'>reset view xyz</button> or <button onclick="window.location.replace(window.location.pathname)">reload empty settings</button> </li>
+<!-- <li>🔗 get link</li> -->
+TODO:
+<li>del indexedDB, use local storage JSON</li>
+<li>[ ] investigate why pattern do not shown</li>
+<li>[ ] load field</li>
+<li>[ ] save localStorage to file</li>
+<li>[ ] save img nm, load</li>
+<li>[ ] save settings to img QR-code</li>
+<li>[ ] negative speed</li>
+<li>[ ] upd pattern from f, or list of pictures in select</li>
+<li>[ ] dont flood URL untill ask of link</li>
+</div>
+
 </div>
 
 
 <script> //init
 window.onload=setup;
+
 function setup(){
 //-------- shrtcutBtn events
 	let ar=document.getElementsByName('showArr'); //### groups
@@ -1001,8 +999,8 @@ function setup(){
 		ar[i].addEventListener('click', shrtcutBtn_click);
 		let K=k.toUpperCase(); //k is lower case
 		let str=ar[i].innerText;
-		ar[i].id=ar[i].name+str;								//console.log(ar[i].id)
-		showArrSortcuts[k]=str;		showArrSortcuts_vk[str]=k;
+		ar[i].id=ar[i].name+str;
+		Sortcuts_els[k]=ar[i];//to search el by key
 		ksearch=(str.indexOf(K)==-1)?k:K; //if no UpperCase - search lower 		//TODO if no any - add k to element
 		str=str.replace(ksearch, '<b class=shortcut>'+ksearch+'</b>'); //remain case. Show UpperCase via css if no UpperCase in string
 
@@ -1117,7 +1115,7 @@ sel.addEventListener('mouseleave', antFunc_sel_off);
 
 function antFunc_sel_dropdown(e){
 e.target.setAttribute('size',e.target.length)
-//e.target.style.zIndex=9999;
+//e.target.style.zIndex=9999;//nw TODO fix
 }
 function antFunc_sel_off(e){
 e.target.removeAttribute('size')
@@ -1186,25 +1184,44 @@ var lastX=1/2,lastY=1/2;
 var dragStart,dragged;
 var tt={}
 
-function addEvents_panZoom_ToCanvasView(canvasView)
+function addEvents_panZoom_ToCanvasView(canvasView) //TODO dont faster than FPS
 {	//console.log(ss.w,ss.h,lastX,lastY)
-	lastX=canvasView.width/2;
+	lastX=canvasView.width/2; //mouse pos in canvas coord
 	lastY=canvasView.height/2;
 	tt.zoomOld=ss.zoom;
 	tt.zoom_t=ss.zoom;
 
 	canvasView.addEventListener('mousedown',function(evt){
 		document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
-		lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
-		lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
-		dragStart =[lastX,lastY];// ctxView.transformedPoint(lastX,lastY);
+		
+		if(evt.button === 0) //draw
+		{
+			tt.bDraw=true;
+		}
+		else
+		//if(evt.button === 1) //middle btn
+		{
+			lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
+			lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
+			dragStart =[lastX,lastY];// ctxView.transformedPoint(lastX,lastY);
+		}
+		
 		dragged = false;
-				//console.log(lastX,lastY)
+		evt.preventDefault();				
 	},false);
 	canvasView.addEventListener('mousemove',function(evt){
 		lastX = evt.offsetX || (evt.pageX - canvasView.offsetLeft);
 		lastY = evt.offsetY || (evt.pageY - canvasView.offsetTop);
-		dragged = true;
+		
+		if(tt.bDraw) //draw
+		{
+			let x=Math.round((lastX*ss.zoom-ss.xx*canvasView.width)%ss.w);
+			let y=Math.round((lastY*ss.zoom-ss.yy*canvasView.height)%ss.h);
+			if(x<0)x+=ss.w;
+			if(y<0)y+=ss.h;
+			field[y*ss.w+x]=255;			//console.log(x,y)
+		}
+		else
 		if (dragStart){
 			//pt = ctxView.transformedPoint(lastX,lastY);
 			//ctxView.translate(pt.x-dragStart.x,pt.y-dragStart.y);
@@ -1212,12 +1229,14 @@ function addEvents_panZoom_ToCanvasView(canvasView)
 			stt.xx=(lastX-dragStart[0])/canvasView.width*ss.zoom+dragEnd_dX;
 			stt.yy=(lastY-dragStart[1])/canvasView.height*ss.zoom+dragEnd_dY;	//console.log(ss.xx,ss.yy)
 		}
+		dragged = true;
 				//console.log(lastX,lastY)
 				//if(il%16==0)	URL_upd();
 				//#fix position glitch on first down 
 	},false);
 	canvasView.addEventListener('mouseup',function(evt){
 		dragStart = null;
+		tt.bDraw=false
 		if (!dragged) Zoom(evt.shiftKey ? -1 : 1 );
 		else
 		{
@@ -1272,15 +1291,12 @@ attribute vec2 a_position;
 attribute vec2 a_texCoord;
 
 uniform vec2 u_resolution;
-
 varying vec2 v_texCoord;
 
 uniform float zoom;
 uniform vec2 view_center;
 
 void main() {
-   //gl_PointSize = 12.0;
-  
    vec2 zeroToOne = a_position /  vec2(u_resolution.x,u_resolution.y); // convert the rectangle from pixels to 0.0 to 1.0
    vec2 zeroToTwo = zeroToOne * 2.0; // convert from 0->1 to 0->2
    vec2 clipSpace = zeroToTwo - 1.0; // convert from 0->2 to -1->+1 (clipspace)
@@ -1296,8 +1312,7 @@ void main() {
 precision highp float;
 
 uniform sampler2D u_image;
-uniform vec2 u_textureSize;
-
+//uniform vec2 u_textureSize;
 varying vec2 v_texCoord; //from the vertex shader
 
 uniform float timestamp;
@@ -1314,20 +1329,6 @@ uniform float clamp_rest;//0
 
 uniform float zoom;
 
-/*
-// All components are in the range [0…1], including hue.
-vec3 rgb2hsv(vec3 c)
-{
-	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-
-	float d = q.x - min(q.w, q.y);
-	float e = 1.0e-10;
-	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-}
-*/
- 
 // All components are in the range [0…1], including hue.
 vec3 hsv2rgb(vec3 c)
 {
@@ -1338,18 +1339,10 @@ vec3 hsv2rgb(vec3 c)
 	vec3 p = abs(fract(c.xxx + K.xyz) * h_k4 - K.www);
 	c=c.z * mix(K.xxx, clamp(p - K.xxx, h_kBk, h_kLi), c.y);
 
-	c = mix(c, c*clamp_rest, step(clamp_limit,min(c.x,min(c.y,c.z))));	//=== if(c.x>0.8 && c.y>0.8 && c.z>0.8) c*=0.1;
+	c = mix(c, c*clamp_rest, step(clamp_limit,min(c.x,min(c.y,c.z))));	//=== if(c.x>limit && c.y>limit && c.z>limit) c*=clamp_rest; //replace whites with black
 	return c;
-	//return c.z * mix(K.xxx, clamp(p - K.xxx, h_kBk, h_kLi), c.y);
 }
 /*
-// Official HSV to RGB conversion 
-vec3 hsv2rgb( in vec3 c )
-{
-    vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
-
-	return c.z * mix( vec3(1.0), rgb, c.y);
-}
 //TODO use (seems diff is small here), but it has to be better sometimes https://www.shadertoy.com/view/MsS3Wc
 // Smooth HSV to RGB conversion 
 vec3 hsv2rgb_smooth( in vec3 c )
@@ -1357,8 +1350,15 @@ vec3 hsv2rgb_smooth( in vec3 c )
     vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
 
 	rgb = rgb*rgb*(3.0-2.0*rgb); // cubic smoothing	
-
+    //rgb = rgb*rgb*rgb * (rgb * (rgb * 6.0 - 15.0) + 10.0); //Quintic smoothing
+    //rgb = cos( (rgb + 1.0) * PI );//cosine
+	
 	return c.z * mix( vec3(1.0), rgb, c.y);
+}
+
+vec3 hsv2rgb_smooth( vec3 c ) //optimized
+{
+	return c.z * (1. - c.y * smoothstep(2.,1., abs( mod( c.x*6.+vec3(0,4,2), 6.) -3.) ));
 }
 */
 void main() {
@@ -1371,9 +1371,9 @@ void main() {
 		*/
 	   
 	//gl_FragColor = vec4(v_texCoord.x, v_texCoord.y, 0, 1); 
+	//c0=gl_FragColor.x;
 	
 	float c0=texture2D(u_image, v_texCoord).x;
-	//c0=gl_FragColor.x;
 	
 	if(c0==0.)
 	{
@@ -1384,23 +1384,7 @@ void main() {
 	vec3 c=vec3(sin(c0*h_mul+timestamp),1.,1.);
 	
 	c=hsv2rgb(c);
-
 	gl_FragColor = vec4(c,1.);
-	
-	
-	/*
-	if(texture2D(u_image, v_texCoord).x>0.1)
-		gl_FragColor = vec4(1.,0.,0.,1.);
-	else
-	if(texture2D(u_image, v_texCoord).x>0.5)
-		gl_FragColor = vec4(0.,1.,0.,1.);
-	else
-		gl_FragColor = vec4(0.,0.,1.,1.);
-	*/
-
-	
-	//gl_FragColor = vec4( hsv2rgb(c), 1.);
-	//gl_FragColor = texture2D(u_image, v_texCoord)+vec4(v_texCoord.x, v_texCoord.y, 0, 1); //vec4(1, 0.5, 0, 1);
 }
 
 `
@@ -1408,48 +1392,6 @@ void main() {
 
 
 //=============================================
-
-/*
-let tex_size = 256;
-
-
-texAr=new Uint8Array(tex_size*tex_size);
-fillArray(texAr, 1)
-texAr=new Float32Array(tex_size*tex_size);
-fillArray(texAr, 1)
-function fillArray(arr, valPerPixel)
-{
-	for(let y=0, n=0;y<tex_size;y++){
-		for(let x=0;x<tex_size;x++,n++) {
-			arr[n*valPerPixel]=n;
-			//arr[n*valPerPixel]=x+y;
-		}
-	}
-}
-*/
-/*
-let tex_size = 256;
-
-
-texArr_8=new Uint8Array(tex_size*tex_size);
-for(let y=0, n=0;y<tex_size;y++){
-	for(let x=0;x<tex_size;x++,n++) {
-		texArr_8[n]=x+y;
-	}
-}
-		
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ss.w, ss.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); //working
-
-texArr_RGBA8=new Uint8Array(tex_size*tex_size*4);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ss.w, ss.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, texArr); //working
-
-
-texArr_32F=new Float32Array(tex_size*tex_size);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, ss.w, ss.h, 0, gl.R32F, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
-
-texArr_RGBA32F=new Float32Array(tex_size*tex_size*4);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ss.w, ss.h, 0, gl.RGBA, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
-*/
 
 let floatTextures = gl.getExtension('OES_texture_float'); if (!floatTextures) { alert('no floating point tex support');/*use color.r + color.g * 256.0f*/}
 //,OES_texture_half_float //16b  
@@ -1471,7 +1413,7 @@ var h_incr_mul=1;
 var frameNID=-1;// №
 let ant_dirAbs_last=0;
 let ant_step_i_last=0;
-let bPrint_k=0;
+//let bLog_uniform_k=0;
 
 AntLastStep=0;
 seq_detect_m=30;
@@ -1489,14 +1431,13 @@ timestamp_t+=ss.h_incr*h_incr_mul;
 	
 	for (let i = 0; i < ss.speed; i++)
 	{ //100000000 =10M=1s on opera2020  //310+35ms separate field arr
-	/*
+
 		for(let i=0;i<ants.length;i++)
 		{
 		 ants[i].run();
 		 //bStop=true; //TODO single step mode press btn //sleep(500)
 		}
-		*/
-		ants[0].run();		//console.log(ants[0].pos);
+
 		
 		//detect seq TODO settings skip if not need,  not every step 
 		arrAntLastStepC[AntLastStep]=field[ants[0].pos];
@@ -1555,13 +1496,7 @@ timestamp_t+=ss.h_incr*h_incr_mul;
 	}
 	var tA=window.performance.now();
 
-/*
-			c = ((i & 8) ^ (j & 8))*255;
-texArr[(y*ss.w+x)*4] = 222; // Red component
-texArr[(y*ss.w+x)*4+1] = 111; // Green component
-texArr[(y*ss.w+x)*4+2] = c; // Blue component
-texArr[(y*ss.w+x)*4+3] = 0xff; // Alpha component
-*/
+
 for(let i=0;i<tt.wh;i++){
 	if(ss.del_field_if_step_i>0 && arrHist[i]<ants[0].step_i_real-ss.del_field_if_step_i)
 	{
@@ -1580,20 +1515,14 @@ for(let i=0;i<tt.wh;i++){
 		case 'field':
 		h_mul_mul=0.005;
 		h_incr_mul=0;
-		//for(let y=0, n=0;y<ss.h;y++){
-		//for(let x=0;x<ss.w;x++,n++) {
-			//let pos=x*ss.h+y;
-		//	let value = field[n];
-			//if(value==0&&buffer32[n]==0) continue; //skip unused
-			//if(value!=0&& buffer32[n]!=0) continue;
-			
-		//	texArr[n] = value;
-		//}
-		//}
+
+		//if(value==0&&buffer32[n]==0) continue; //skip unused @@@ TODO settings to skip outer BG pattern
+		//if(value!=0&& buffer32[n]!=0) continue;
+
 
 		for(let i=0;i<tt.wh;i++){
 			texArr[i] = field[i];
-			//if(arrVisits[i]<3){texArr[i] = field[i];} //only first
+			//if(arrVisits[i]<3){arrFirtsVisit[i] = field[i];} //only first @@@ try TODO
 			//else {texArr[i]++}
 		}
 		break;
@@ -1668,6 +1597,49 @@ if(il==0){
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 }
+
+
+/* //supported array types
+let tex_size = 256;
+
+
+texAr=new Uint8Array(tex_size*tex_size);
+fillArray(texAr, 1)
+texAr=new Float32Array(tex_size*tex_size);
+fillArray(texAr, 1)
+function fillArray(arr, valPerPixel)
+{
+	for(let y=0, n=0;y<tex_size;y++){
+		for(let x=0;x<tex_size;x++,n++) {
+			arr[n*valPerPixel]=n;
+			//arr[n*valPerPixel]=x+y;
+		}
+	}
+}
+*/
+/*
+let tex_size = 256;
+
+
+texArr_8=new Uint8Array(tex_size*tex_size);
+for(let y=0, n=0;y<tex_size;y++){
+	for(let x=0;x<tex_size;x++,n++) {
+		texArr_8[n]=x+y;
+	}
+}
+		
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ss.w, ss.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); //working
+
+texArr_RGBA8=new Uint8Array(tex_size*tex_size*4);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ss.w, ss.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, texArr); //working
+
+
+texArr_32F=new Float32Array(tex_size*tex_size);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, ss.w, ss.h, 0, gl.R32F, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
+
+texArr_RGBA32F=new Float32Array(tex_size*tex_size*4);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ss.w, ss.h, 0, gl.RGBA, gl.FLOAT, texArr); //Error  gl.FLOAT invalid type
+*/
   // Upload the image into the texture.
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ss.w, ss.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, texArr); // new Uint8Array(texArr)
   //gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, ss.w, ss.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(texArr));
@@ -1684,8 +1656,8 @@ if(il==0){
   gl.uniform1f(h_kLiId, ss.h_kLi);
   gl.uniform1f(clamp_limitId, ss.clamp_limit);
   gl.uniform1f(clamp_restId, ss.clamp_rest);
-  
-  if(bPrint_k)
+  /*
+  if(bLog_uniform_k)
   {
   console.log(ss.h_mul*h_mul_mul);
   console.log(ss.h_k0);
@@ -1697,9 +1669,8 @@ if(il==0){
   console.log(ss.h_kLi);
   console.log(ss.clamp_limit);
   console.log(ss.clamp_rest);
-  bPrint_k=0;
-  }
-  
+  bLog_uniform_k=0;
+  } */
   if(ss.bAnim)
   {
 	ss.x_anim+=ss.x_anim_incr;
@@ -1792,18 +1763,17 @@ function swStartStop(b) //true to start.	undefined to toggle
 }
 
 //=========================================== Audio
-	var osc=null;
-	var context;
-	var freq_avg=0;
+var osc=null;
+var context;
+var freq_avg=0;
 
-	//canvas.onclick=sw_bAudioOFF	//document.onclick=sw_bAudioOFF
 //@@https://www.html5rocks.com/en/tutorials/getusermedia/intro/
 function init_Audio(){
-	if(ss.bAudioOFF==true || bStop) return; //dont neeed if Stop or mutted
+	if(ss.bAudioOFF==true || bStop) return; //as dont neeed if Stop or mutted
 	context = new(window.AudioContext || window.webkitAudioContext)();
 	osc = context.createOscillator(); 
-	// Sine is the default type. Also available: square, sawtooth and triangle waveforms.
-	osc.type = 'sine'; 
+	
+	osc.type = 'sine'; // Sine is default. Also available: square, sawtooth and triangle waveforms.
 	
 	g = context.createGain();
 	osc.connect(g);
@@ -1812,9 +1782,7 @@ function init_Audio(){
 
 	var now = context.currentTime;
 	osc.frequency.setValueAtTime(440, now);
-	osc.frequency.setValueAtTime(440, now+1);
 	osc.start(); 
-
 }
 /*
 function voiceMute() {
@@ -1990,7 +1958,6 @@ function setFrequency()
 	//osc.frequency.value=60+(freq%ss.freq_dirModule)*ss.freq_rangeMult; //%4   Math.sin(ant.dir)*256;   //by dir
 }
 fxxs=new Float32Array(4096);//how often fx is used
-
 freq_avg=0; //TODO settings, map to notes, midi
 ffx=0;
 //##const osc = new Tone.Oscillator(440, "sine").toDestination()

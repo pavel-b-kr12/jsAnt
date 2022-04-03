@@ -56,6 +56,8 @@ test1 js 100M ops =936ms
 [*] big collection of ants and settings
 
 #### TODO
+[ ] render last N steps wo colorize and save image with ant pos to center
+[ ] ants pos in save-image name
 [ ] filled area per t, 	end point distance per t
 [ ] investigate why pattern do not shown
 [ ] load field
